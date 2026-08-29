@@ -15,7 +15,7 @@ public class Troop {
         m_team = team;
     }
 
-    public int getRow() {return g;}
+    public int getRow() {return m_row;}
     public int getColumn() {return m_column;}
     public int getHealth() {return m_health;}
     public Team getTeam() {return m_team;}
