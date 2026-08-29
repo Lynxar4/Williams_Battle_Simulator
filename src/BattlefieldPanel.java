@@ -18,7 +18,6 @@ public class BattlefieldPanel extends JPanel {
         teamBCastle = new Castle(3, 11, 100);
 
         teamATroop = new Troop(3, 2, 100, 1, 10, Troop.Team.teamA);
-        teamATroop.move();
     }
 
     @Override
