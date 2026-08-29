@@ -1,0 +1,43 @@
+# Compiled output
+*.class
+bin/
+out/
+target/
+build/
+
+# Packaged archives
+*.jar
+*.war
+*.ear
+*.zip
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+replay_pid*
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+.metadata/
+
+# VS Code
+.vscode/
+
+# Gradle
+.gradle/
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# OS junk
+Thumbs.db
+.DS_Store
