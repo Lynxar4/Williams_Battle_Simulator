@@ -18,33 +18,34 @@ public class BattlefieldPanel extends JPanel {
         teamBCastle = new Castle(3, 11, 100);
 
         teamATroop = new Troop(3, 2, 100, 1, 10, Troop.Team.teamA);
+        teamATroop.move();
     }
 
     @Override
     protected void paintComponent(Graphics g)
     {
-       super.paintComponent(g);
+        super.paintComponent(g);
 
-       int gridWidth = columns * cellSize;
-       int gridHeight = rows * cellSize;
+        int gridWidth = columns * cellSize;
+        int gridHeight = rows * cellSize;
 
-       int offsetX = (getWidth() - gridWidth) / 2;
-       int offsetY = (getHeight() - gridHeight) / 2;
+        int offsetX = (getWidth() - gridWidth) / 2;
+        int offsetY = (getHeight() - gridHeight) / 2;
 
-       g.setColor(Color.gray);
-       for (int i = 0; i < rows; ++i)
-       {
-           for (int j = 0; j < columns; ++j)
-           {
-               int x = j * cellSize + offsetX;
-               int y = i * cellSize + offsetY;
-               g.drawRect(x, y, cellSize, cellSize);
-           }
-       }
+        g.setColor(Color.gray);
+        for (int i = 0; i < rows; ++i)
+        {
+            for (int j = 0; j < columns; ++j)
+            {
+                int x = j * cellSize + offsetX;
+                int y = i * cellSize + offsetY;
+                g.drawRect(x, y, cellSize, cellSize);
+            }
+        }
 
-       drawCastle(g, teamACastle, offsetX, offsetY);
-       drawCastle(g, teamBCastle, offsetX, offsetY);
-       drawTroop(g, teamATroop, offsetX, offsetY);
+        drawCastle(g, teamACastle, offsetX, offsetY);
+        drawCastle(g, teamBCastle, offsetX, offsetY);
+        drawTroop(g, teamATroop, offsetX, offsetY);
     }
 
     private void drawCastle(Graphics g, Castle castle, int offsetX, int offsetY)
