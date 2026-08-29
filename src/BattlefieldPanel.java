@@ -9,12 +9,15 @@ public class BattlefieldPanel extends JPanel {
 
     private Castle teamACastle;
     private Castle teamBCastle;
+    private Troop teamATroop;
 
     public BattlefieldPanel() {
         setBackground(new Color(235, 245, 235));
 
         teamACastle = new Castle(3, 0, 100);
         teamBCastle = new Castle(3, 11, 100);
+
+        teamATroop = new Troop(3, 2, 100, 1, 10, Troop.Team.teamA);
     }
 
     @Override
@@ -41,6 +44,7 @@ public class BattlefieldPanel extends JPanel {
 
        drawCastle(g, teamACastle, offsetX, offsetY);
        drawCastle(g, teamBCastle, offsetX, offsetY);
+       drawTroop(g, teamATroop, offsetX, offsetY);
     }
 
     private void drawCastle(Graphics g, Castle castle, int offsetX, int offsetY)
@@ -50,5 +54,14 @@ public class BattlefieldPanel extends JPanel {
 
         g.setColor(Color.DARK_GRAY);
         g.fillRect(x, y, cellSize, cellSize);
+    }
+
+    private void drawTroop(Graphics g, Troop troop, int offsetX, int offsetY)
+    {
+        int x = troop.getColumn() * cellSize + offsetX;
+        int y = troop.getRow() * cellSize + offsetY;
+
+        g.setColor(Color.BLUE);
+        g.fillOval(x, y, cellSize, cellSize);
     }
 }
