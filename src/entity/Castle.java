@@ -1,3 +1,4 @@
+package entity;
 public class Castle {
     public Castle(int row, int column, int health)
     {

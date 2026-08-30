@@ -1,5 +1,12 @@
+package view;
+
 import java.awt.Color;
 import javax.swing.JPanel;
+
+import entity.Castle;
+import entity.Troop;
+import entity.Troop.Team;
+
 import java.awt.Graphics;
 
 public class BattlefieldPanel extends JPanel {

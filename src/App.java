@@ -1,4 +1,6 @@
+import controller.*;
 import javax.swing.JFrame;
+import view.BattlefieldPanel;
 
 public class App {
     public static void main(String[] args) {
@@ -8,5 +10,7 @@ public class App {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
+        new Session().start();
     }
 }

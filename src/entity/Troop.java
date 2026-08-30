@@ -1,3 +1,4 @@
+package entity;
 public class Troop {
     public enum Team
     {
