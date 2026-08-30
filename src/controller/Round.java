@@ -2,18 +2,24 @@ package controller;
 
 import entity.*;
 import view.*;
+import controller.states.*;
 
 public class Round{
     Team teamA,teamB;
-    BattlefieldPanel panel;
+    GameState currentState ;
     
-    Round(Team teamA,Team teamB, BattlefieldPanel panel){
+    Round(Team teamA,Team teamB){
         this.teamA = teamA;
         this.teamB = teamB;
-        this.panel = panel;
     }
     
     public void start(){
-
+        currentState = new AllocateState();
     }
+
+    public void update(){   
+        currentState.update();
+    }
+
+
 }

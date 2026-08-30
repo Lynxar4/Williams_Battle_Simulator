@@ -19,8 +19,8 @@ public class Session {
         teamA = new Team("teamA");
         teamB = new Team("teamB");
         //Creating a new round
-        round = new Round(teamA,teamB,panel);
-       
+        round = new Round(teamA,teamB);
+        
         //Start the timer
         timer = new Timer(TICK_DURATION, e->{
             System.out.println("hello");
