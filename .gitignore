@@ -41,3 +41,7 @@ replay_pid*
 # OS junk
 Thumbs.db
 .DS_Store
+
+# Mejal's ignores
+Personal_log.txt
+bin/
