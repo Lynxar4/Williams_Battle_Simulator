@@ -4,15 +4,27 @@ import java.awt.Color;
 import javax.swing.JPanel;
 
 import entity.Castle;
+import entity.Hill;
+import entity.TileEffect;
 import entity.Troop;
 import entity.Troop.Team;
 
+import entity.Hill;
+import entity.TileEffect;
+
 import java.awt.Graphics;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class BattlefieldPanel extends JPanel {
     private static final int rows = 8;
     private static final int columns = 12;
     private static final int cellSize = 50;
+
+    private static final int hillCount = 4;
+    private static final int hillDamageBonus = 5;
+    private List<TileEffect> tileEffects;
 
     private Castle teamACastle;
     private Castle teamBCastle;
@@ -23,8 +35,11 @@ public class BattlefieldPanel extends JPanel {
 
         teamACastle = new Castle(3, 0, 100);
         teamBCastle = new Castle(3, 11, 100);
+        tileEffects = new ArrayList<>();
+        spawnHills();
 
         teamATroop = new Troop(3, 2, 100, 1, 10, Troop.Team.teamA);
+        
     }
 
     @Override
@@ -48,6 +63,11 @@ public class BattlefieldPanel extends JPanel {
                 g.drawRect(x, y, cellSize, cellSize);
             }
         }
+                // effects draw first so troops and stuff stay on top of them.
+        for (TileEffect effect : tileEffects)
+        {
+            drawTileEffect(g, effect, offsetX, offsetY);
+        }
 
         drawCastle(g, teamACastle, offsetX, offsetY);
         drawCastle(g, teamBCastle, offsetX, offsetY);
@@ -61,6 +81,63 @@ public class BattlefieldPanel extends JPanel {
 
         g.setColor(Color.DARK_GRAY);
         g.fillRect(x, y, cellSize, cellSize);
+    }
+
+        // hills spawn at random empty cells at the start of the round rather than
+    private void spawnHills()
+    {
+        Random random = new Random();
+        int placed = 0;
+
+        while (placed < hillCount)
+        {
+            int row = random.nextInt(rows);
+            int column = random.nextInt(columns);
+
+            if (isCellFree(row, column))
+            {
+                tileEffects.add(new Hill(row, column, hillDamageBonus));
+                ++placed;
+            }
+        }
+    }
+
+    private boolean isCellFree(int row, int column)
+    {
+        if (isSameCell(teamACastle.getRow(), teamACastle.getColumn(), row, column)
+         || isSameCell(teamBCastle.getRow(), teamBCastle.getColumn(), row, column))
+        {
+            return false;
+        }
+
+        for (TileEffect effect : tileEffects)
+        {
+            if (effect.isAt(row, column))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isSameCell(int rowA, int columnA, int rowB, int columnB)
+    {
+        return rowA == rowB && columnA == columnB;
+    }
+
+    private void drawTileEffect(Graphics g, TileEffect effect, int offsetX, int offsetY)
+    {
+        int x = effect.getColumn() * cellSize + offsetX;
+        int y = effect.getRow() * cellSize + offsetY;
+
+        if (effect instanceof Hill)
+        {
+            g.setColor(new Color(120, 155, 95));
+            int[] xs = { x + 6, x + cellSize / 2, x + cellSize - 6 };
+            int[] ys = { y + cellSize - 8, y + 8, y + cellSize - 8 };
+            g.fillPolygon(xs, ys, 3);
+        }
     }
 
     private void drawTroop(Graphics g, Troop troop, int offsetX, int offsetY)
