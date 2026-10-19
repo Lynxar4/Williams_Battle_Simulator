@@ -17,8 +17,6 @@ import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
@@ -323,8 +321,13 @@ public class BattlefieldPanel extends JPanel {
         g.drawLine(x + SIDEBAR_PADDING, budgetY + 48,
                 x + SIDEBAR_WIDTH - SIDEBAR_PADDING, budgetY + 48);
 
-        Map<Boolean, Long> aliveBreakdown = getAliveBreakdown(team);
-        Map<String, Long> healthBreakdown = getHealthBreakdown(team);
+        // gets all the health stats for the team
+        ArmyHealthSummary healthSummary = team.getArmy().stream()
+                .collect(new ArmyHealthCollector());
+
+        int alive = healthSummary.getHealthy()
+                + healthSummary.getWounded()
+                + healthSummary.getCritical();
 
         int statsY = budgetY + 72;
 
@@ -336,11 +339,11 @@ public class BattlefieldPanel extends JPanel {
         g.setFont(new Font("SansSerif", Font.PLAIN, 11));
 
         drawCentred(g,
-                "Alive: " + aliveBreakdown.getOrDefault(false, 0L),
+                "Alive: " + alive,
                 x, statsY + 22);
 
         drawCentred(g,
-                "Dead: " + aliveBreakdown.getOrDefault(true, 0L),
+                "Dead: " + healthSummary.getDead(),
                 x, statsY + 40);
 
         g.setColor(SIDEBAR_DIVIDER);
@@ -353,46 +356,24 @@ public class BattlefieldPanel extends JPanel {
         g.setColor(VALUE_COLOUR);
 
         drawCentred(g,
-                "Healthy: " + healthBreakdown.getOrDefault("Healthy", 0L),
+                "Healthy: " + healthSummary.getHealthy(),
                 x, statsY + 92);
 
         drawCentred(g,
-                "Wounded: " + healthBreakdown.getOrDefault("Wounded", 0L),
+                "Wounded: " + healthSummary.getWounded(),
                 x, statsY + 110);
 
         drawCentred(g,
-                "Critical: " + healthBreakdown.getOrDefault("Critical", 0L),
+                "Critical: " + healthSummary.getCritical(),
                 x, statsY + 128);
 
         drawCentred(g,
-                "Dead: " + healthBreakdown.getOrDefault("Dead", 0L),
+                "Dead: " + healthSummary.getDead(),
                 x, statsY + 146);
-    }
 
-    private Map<String, Long> getHealthBreakdown(Team team) {
-        return team.getArmy().stream()
-                .collect(Collectors.groupingBy(
-                        troop -> healthBand(troop),
-                        Collectors.counting()));
-    }
-
-    private Map<Boolean, Long> getAliveBreakdown(Team team) {
-        return team.getArmy().stream()
-                .collect(Collectors.partitioningBy(
-                        Troop::isDestroyed,
-                        Collectors.counting()));
-    }
-
-    private String healthBand(Troop troop) {
-        if (troop.isDestroyed()) {
-            return "Dead";
-        } else if (troop.getHealth() > 70) {
-            return "Healthy";
-        } else if (troop.getHealth() >= 30) {
-            return "Wounded";
-        } else {
-            return "Critical";
-        }
+        drawCentred(g,
+                "Avg HP: " + String.format("%.1f", healthSummary.getAverageHealth()),
+                x, statsY + 164);
     }
 
     private void drawCentred(Graphics g, String text,
