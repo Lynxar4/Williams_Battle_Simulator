@@ -28,15 +28,6 @@ public class Troop implements Positioned {
         this.team = team;
     }
 
-    /* ---- PUBLIC METHODS ---- */
-    public void move() {
-        if (team == Team.teamA) {
-            column += speed;
-        } else {
-            column -= speed;
-        }
-    }
-
     public void takeDamage(int dmg) {
         health -= dmg;
     }

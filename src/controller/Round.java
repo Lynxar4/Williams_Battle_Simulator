@@ -85,7 +85,36 @@ public class Round {
                 && troopBoard.isCellFree(row, column);
     }
 
+    public boolean isBlocked(int row, int column) {
+        return !castleBoard.isWithinBounds(row, column)
+                || !castleBoard.isCellFree(row, column)
+                || isTroopAt(row, column);
+    }
+
+    public Team getEnemyTeam(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamB : teamA;
+    }
+
+    public Castle getEnemyCastle(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamBCastle : teamACastle;
+    }
+
     /*---- PRIVATE METHODS ---- */
+    private boolean isTroopAt(int row, int column) {
+        for (Troop troop : teamA.getArmy()) {
+            if (!troop.isDestroyed() && troop.isAt(row, column)) {
+                return true;
+            }
+        }
+
+        for (Troop troop : teamB.getArmy()) {
+            if (!troop.isDestroyed() && troop.isAt(row, column)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void placeCastles() {
         try {
             castleBoard.place(teamACastle);

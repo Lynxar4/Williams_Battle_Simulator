@@ -72,9 +72,9 @@ public class Session {
 
     /* ---- TEMPORARY METHOD ---- */
     private void setTemporaryTroops() {
-        teamA.addTroop(new Troop(3, 2, 100, 1, 10, Troop.Team.teamA));
-        teamB.addTroop(new Troop(3, 9, 100, 1, 10, Troop.Team.teamB));
-        teamA.addTroop(new Troop(3, 2, 100, 1, 10, Troop.Team.teamA));
-        teamB.addTroop(new Troop(3, 9, 100, 1, 10, Troop.Team.teamB));
+        teamA.addTroop(new Troop(2, 2, 100, 1, 10, Troop.Team.teamA));
+        teamA.addTroop(new Troop(4, 2, 100, 1, 10, Troop.Team.teamA));
+        teamB.addTroop(new Troop(2, 9, 100, 1, 10, Troop.Team.teamB));
+        teamB.addTroop(new Troop(4, 9, 100, 1, 10, Troop.Team.teamB));
     }
 }
