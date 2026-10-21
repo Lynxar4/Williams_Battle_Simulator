@@ -9,6 +9,7 @@ import entity.interactables.Hill;
 import entity.interactables.TileEffect;
 import entity.interactables.Trap;
 import entity.troops.Troop;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -17,6 +18,7 @@ import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.util.stream.Stream;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 
@@ -209,6 +211,12 @@ public class BattlefieldPanel extends JPanel {
 
     // effects draw first so troops and stuff stay on top of them.
     private void drawTileEffects(Graphics g, int offsetX, int offsetY) {
+        /*
+        IMPORTANT FOR STEAM DISCUSSION:
+        * Using stream here hurts readability, the for loop is much easier to read
+        * Using stream is not necessary because we are not modifying or filtering the data
+        * -> round.getTileEffects().stream().forEach((effects)->{....})
+        */
         for (TileEffect effect : round.getTileEffects()) {
             drawTileEffect(g, effect, offsetX, offsetY);
         }
@@ -220,12 +228,22 @@ public class BattlefieldPanel extends JPanel {
     }
 
     private void drawArmies(Graphics g, int offsetX, int offsetY) {
-        for (Troop troop : teamA().getArmy()) {
-            drawTroop(g, troop, offsetX, offsetY);
-        }
-        for (Troop troop : teamB().getArmy()) {
-            drawTroop(g, troop, offsetX, offsetY);
-        }
+        /* IMPORTANT FOR STREAM DISCUSSION
+        * -> previously the for loops were repetative and redundant
+        * -> With the stream it improves the readability
+        * -> here the stream from team A's and B's Army is being combined as for each of the element
+        *   the lambda is being run.
+        * -> and it will be easier to filter the troops that are alive.
+       OLDER LOGIC
+       * for (Troop troop : teamA().getArmy()) {
+           drawTroop(g, troop, offsetX, offsetY);
+       }
+       for (Troop troop : teamB().getArmy()) {
+           drawTroop(g, troop, offsetX, offsetY);
+       }
+        * */
+        Stream.concat(teamA().getArmy().stream(), teamB().getArmy().stream())
+                .forEach(troop -> drawTroop(g, troop, offsetX, offsetY));
     }
 
     private void drawSidebars(Graphics g, int offsetX, int offsetY) {
@@ -330,4 +348,8 @@ public class BattlefieldPanel extends JPanel {
     public void setRound(Round round) {
         this.round = round;
     }
+
+    /* EXAMPLE*/
+
+
 }

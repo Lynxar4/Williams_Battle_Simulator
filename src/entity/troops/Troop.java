@@ -1,8 +1,9 @@
 package entity.troops;
 
+import entity.Damageable;
 import entity.Positioned;
 
-public class Troop implements Positioned {
+public abstract class Troop implements Damageable {
 
     /* ---- ENUMS ---- */
     public enum Team {
@@ -11,12 +12,15 @@ public class Troop implements Positioned {
     }
 
     /* ---- PRIVATE VARIABLES ---- */
+    private Team team;
+    //    Position
     private int row;
     private int column;
+    //    Stats
     private int health;
     private int speed;
     private int troopSize;
-    private Team team;
+    private String type;
 
     /* ---- CONSTRUCTORS ---- */
     public Troop(int row, int column, int health, int speed, int troopSize, Team team) {
@@ -29,12 +33,8 @@ public class Troop implements Positioned {
     }
 
     /* ---- PUBLIC METHODS ---- */
-    public void move() {
-        if (team == Team.teamA) {
-            column += speed;
-        } else {
-            column -= speed;
-        }
+    public  void move(){
+        // Troop movement logic
     }
 
     public void takeDamage(int dmg) {
