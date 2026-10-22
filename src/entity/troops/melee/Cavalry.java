@@ -1,25 +1,18 @@
 package entity.troops.melee;
 
-import entity.troops.Troop;
+import entity.troops.Stats;
 
 public class Cavalry extends Melee {
-    /* VARIABLES */
-    private static final int BASE_HEALTH = 20;
 
-    /* CONSTRUCTOR */
-    public Cavalry(int amour,int atk,int atkRange,int row, int column, int health, int speed, int troopSize, Team team){
-        super(amour,atk,atkRange,row, column, health, speed, troopSize, team);
-    }
+    /* ---- STATS ---- */
+    private static final int BASE_HEALTH = 150;
+    private static final int BASE_ATK = 20;
+    private static final int BASE_ARMOUR = 35;
 
-    /* PUBLIC METHODS*/
-    @Override
-    public void attack(Troop enemy) {
+    public static Stats TroopStat = Stats.melee(BASE_HEALTH, BASE_ATK, BASE_ARMOUR);
 
-    }
-
-
-    @Override
-    public void move() {
-
+    /* ---- CONSTRUCTORS ---- */
+    public Cavalry(int row, int column, int initialGroupSize, Team team) {
+        super(row, column, TroopStat, initialGroupSize, team);
     }
 }

@@ -35,11 +35,6 @@ public class Castle implements Damageable {
         health -= dmg;
     }
 
-    @Override
-    public boolean isAlive() {
-        return false;
-    }
-
     public boolean isDestroyed() {
         return health <= 0;
     }

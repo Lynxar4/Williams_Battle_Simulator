@@ -1,37 +1,34 @@
 package entity.troops;
 
-// Base class for attacking troop types.
-// Melee and ranged troop classes can extend this later.
+import entity.Damageable;
+
+/*
+ * Base class for attacking troop types.
+ * Melee and ranged troop classes extend this.
+ */
 public abstract class Attacker extends Troop implements Healable {
 
-    /* VARIABLES */
-    private int atk;
-    private int atkRange;
-
-    /* CONSTRUCTOR */
-    public Attacker(int atk,int atkRange,int row, int column, int health, int speed, int troopSize, Team team){
-        super(row, column, health, speed, troopSize, team);
-        this.atk = atk;
-        this.atkRange = atkRange;
+    /* ---- CONSTRUCTORS ---- */
+    public Attacker(int row, int column, Stats stats, int initialGroupSize, Team team) {
+        super(row, column, stats, initialGroupSize, team);
     }
 
-    /* PUBLIC METHODS */
+    /* ---- PUBLIC METHODS ---- */
     @Override
-    public  void beHealed(){
-
+    public void beHealed(int healAmount) {
+        groupHealth = Math.min(groupHealth + healAmount, getMaxHealth());
     }
 
-    /* ABSTRACT */
-    public abstract void attack(Troop enemy);
+    public void attack(Damageable target) {
+        target.takeDamage(getAttack()); // attack is proportional to the group size
+    }
 
-
-    /* GETTER METHODS*/
+    /* ---- GETTER METHODS ---- */
     public int getAttack() {
-
-        return atk;
+        return stats.baseAttack() * getGroupSize();
     }
 
     public int getRange() {
-        return atkRange;
+        return stats.attackRange();
     }
 }

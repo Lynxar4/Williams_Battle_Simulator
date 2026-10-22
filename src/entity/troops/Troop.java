@@ -1,7 +1,6 @@
 package entity.troops;
 
 import entity.Damageable;
-import entity.Positioned;
 
 public abstract class Troop implements Damageable {
 
@@ -12,37 +11,41 @@ public abstract class Troop implements Damageable {
     }
 
     /* ---- PRIVATE VARIABLES ---- */
-    private Team team;
-    //    Position
+    // Position
     private int row;
     private int column;
-    //    Stats
-    private int health;
-    private int speed;
-    private int troopSize;
-    private String type;
+    private final Team team;
+
+    /* ---- PROTECTED VARIABLES ---- */
+    protected final Stats stats; // base stats for this troop type, never change
+    protected int initialGroupSize;
+    protected int groupHealth;
 
     /* ---- CONSTRUCTORS ---- */
-    public Troop(int row, int column, int health, int speed, int troopSize, Team team) {
+    public Troop(int row, int column, Stats stats, int initialGroupSize, Team team) {
         this.row = row;
         this.column = column;
-        this.health = health;
-        this.speed = speed;
-        this.troopSize = troopSize;
+        this.initialGroupSize = initialGroupSize;
+        this.stats = stats;
+        this.groupHealth = getMaxHealth(); // default groupHealth is maxed out
         this.team = team;
     }
 
     /* ---- PUBLIC METHODS ---- */
-    public  void move(){
+    public void move() {
         // Troop movement logic
     }
 
+    @Override
     public void takeDamage(int dmg) {
-        health -= dmg;
+        // Damage is reduced in proportion to the troop's armour
+        int reducedDamage = dmg * (100 - stats.armour()) / 100;
+        groupHealth = Math.max(groupHealth - reducedDamage, 0);
     }
 
+    @Override
     public boolean isDestroyed() {
-        return health <= 0;
+        return groupHealth <= 0;
     }
 
     @Override
@@ -61,20 +64,34 @@ public abstract class Troop implements Damageable {
         return column;
     }
 
-    public int getHealth() {
-        return health;
+    public int getGroupHealth() {
+        return groupHealth;
     }
 
     public int getSpeed() {
-        return speed;
+        return stats.speed();
     }
 
-    public int getTroopSize() {
-        return troopSize;
+    public int getInitialGroupSize() {
+        return initialGroupSize;
     }
 
     public Team getTeam() {
         return team;
+    }
+
+    public Stats getStats() {
+        return stats;
+    }
+
+    public int getGroupSize() {
+        // (baseHealth - 1) is an offset so the last soldier is still counted,
+        // since integer division rounds down
+        return (groupHealth + (stats.baseHealth() - 1)) / stats.baseHealth();
+    }
+
+    public int getMaxHealth() {
+        return getStats().baseHealth() * initialGroupSize;
     }
 
     /* ---- SETTER METHODS ---- */
