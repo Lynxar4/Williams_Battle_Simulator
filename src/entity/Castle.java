@@ -1,6 +1,7 @@
 package entity;
 
-public class Castle implements Positioned {
+public class Castle implements Damageable {
+    private final int BASE_HEALTH = 1000;
     private int row;
     private int column;
     private int health;
@@ -8,7 +9,7 @@ public class Castle implements Positioned {
     public Castle(int row, int column, int health) {
         this.row = row;
         this.column = column;
-        this.health = health;
+        this.health = BASE_HEALTH;
     }
 
     @Override

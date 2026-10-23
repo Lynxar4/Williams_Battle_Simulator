@@ -17,8 +17,6 @@ import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
@@ -55,7 +53,6 @@ public class BattlefieldPanel extends JPanel {
     private Image hillSprite;
     private Image trapSprite;
     private Round round;
-
     // Cell currently under the mouse, so paintComponent can highlight it.
     // -1 means the mouse isn't over a valid cell.
     private int hoverRow = -1;
@@ -122,6 +119,7 @@ public class BattlefieldPanel extends JPanel {
         coinSprite = new ImageIcon("assets/Coin_Sprite.png").getImage();
         hillSprite = new ImageIcon("assets/Hill_Sprite.png").getImage();
         trapSprite = new ImageIcon("assets/Trap_Sprite.png").getImage();
+
     }
 
     private void placeTroopAt(int mouseX, int mouseY) {
@@ -138,8 +136,7 @@ public class BattlefieldPanel extends JPanel {
 
     private void moveFirstTroop(int row, int column) throws InvalidPlacementException {
         if (!isWithinGrid(row, column)) {
-            throw new InvalidPlacementException(
-                    "Cell " + row + "," + column + " is outside the battlefield.");
+            throw new InvalidPlacementException("Cell " + row + "," + column + " is outside the battlefield.");
         }
 
         if (teamA().getArmy().isEmpty()) {
@@ -161,8 +158,7 @@ public class BattlefieldPanel extends JPanel {
     }
 
     private boolean isWithinGrid(int row, int column) {
-        return row >= 0 && row < round.getRowCount()
-                && column >= 0 && column < round.getColumnCount();
+        return row >= 0 && row < round.getRowCount() && column >= 0 && column < round.getColumnCount();
     }
 
     /* METHODS FOR GRID LAYOUT */
@@ -207,10 +203,8 @@ public class BattlefieldPanel extends JPanel {
         if (!isWithinGrid(hoverRow, hoverColumn)) {
             return;
         }
-
         g.setColor(HOVER_COLOUR);
-        g.fillRect(hoverColumn * CELL_SIZE + offsetX,
-                hoverRow * CELL_SIZE + offsetY,
+        g.fillRect(hoverColumn * CELL_SIZE + offsetX, hoverRow * CELL_SIZE + offsetY,
                 CELL_SIZE, CELL_SIZE);
     }
 
@@ -228,74 +222,54 @@ public class BattlefieldPanel extends JPanel {
 
     private void drawArmies(Graphics g, int offsetX, int offsetY) {
         Stream.concat(
-                teamA().getArmy().stream(),
-                teamB().getArmy().stream())
+                        teamA().getArmy().stream(),
+                        teamB().getArmy().stream())
                 .forEach(troop -> drawTroop(g, troop, offsetX, offsetY));
     }
-
     private void drawSidebars(Graphics g, int offsetX, int offsetY) {
         int leftX = offsetX - SIDEBAR_WIDTH - SIDEBAR_GAP;
         int rightX = offsetX + getGridWidth() + SIDEBAR_GAP;
         int height = getGridHeight();
 
-        drawSidebar(g, leftX, offsetY, height,
-                teamA(), "Team A", TEAM_A_ACCENT);
-
-        drawSidebar(g, rightX, offsetY, height,
-                teamB(), "Team B", TEAM_B_ACCENT);
+        drawSidebar(g, leftX, offsetY, height, teamA(), "Team A", TEAM_A_ACCENT);
+        drawSidebar(g, rightX, offsetY, height, teamB(), "Team B", TEAM_B_ACCENT);
     }
 
     /* METHODS FOR DRAWING INDIVIDUAL ENTITY */
-
     private void drawCastle(Graphics g, Castle castle, int offsetX, int offsetY) {
         int x = castle.getColumn() * CELL_SIZE + offsetX;
         int y = castle.getRow() * CELL_SIZE + offsetY;
 
-        g.drawImage(castleSprite, x - 5, y - 5,
-                CELL_SIZE + 10, CELL_SIZE + 10, this);
+        g.drawImage(castleSprite, x - 5, y - 5, CELL_SIZE + 10, CELL_SIZE + 10, this);
     }
 
-    private void drawTileEffect(Graphics g, TileEffect effect,
-            int offsetX, int offsetY) {
-
+    private void drawTileEffect(Graphics g, TileEffect effect, int offsetX, int offsetY) {
         int x = effect.getColumn() * CELL_SIZE + offsetX;
         int y = effect.getRow() * CELL_SIZE + offsetY;
 
         if (effect instanceof Hill) {
-            g.drawImage(hillSprite, x - 4, y + 2,
-                    CELL_SIZE + 8, CELL_SIZE - 4, this);
-
+            g.drawImage(hillSprite, x - 4, y + 2, CELL_SIZE + 8, CELL_SIZE - 4, this);
         } else if (effect instanceof Coin) {
-            g.drawImage(coinSprite, x + 8, y + 8,
-                    CELL_SIZE - 16, CELL_SIZE - 16, this);
-
+            g.drawImage(coinSprite, x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, this);
         } else if (effect instanceof Trap) {
-            g.drawImage(trapSprite, x + 5, y + 5,
-                    CELL_SIZE - 10, CELL_SIZE - 10, this);
+            g.drawImage(trapSprite, x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10, this);
         }
     }
 
-    private void drawTroop(Graphics g, Troop troop,
-            int offsetX, int offsetY) {
-
+    private void drawTroop(Graphics g, Troop troop, int offsetX, int offsetY) {
         int x = troop.getColumn() * CELL_SIZE + offsetX;
         int y = troop.getRow() * CELL_SIZE + offsetY;
 
-        Image sprite = (troop.getTeam() == Troop.Team.teamA)
-                ? troopASprite
-                : troopBSprite;
+        Image sprite = (troop.getTeam() == Troop.Team.teamA) ? troopASprite : troopBSprite;
 
-        g.drawImage(sprite, x - 12, y - 12,
-                CELL_SIZE + 24, CELL_SIZE + 24, this);
+        g.drawImage(sprite, x - 12, y - 12, CELL_SIZE + 24, CELL_SIZE + 24, this);
     }
 
     /*
      * One teams column. The header and budget sit at the top and
-     * the health information is shown underneath.
+     * the rest is left empty on purpose, for the stuff later on
      */
-    private void drawSidebar(Graphics g, int x, int y, int height,
-            Team team, String title, Color accent) {
-
+    private void drawSidebar(Graphics g, int x, int y, int height, Team team, String title, Color accent) {
         g.setColor(SIDEBAR_FILL);
         g.fillRect(x, y, SIDEBAR_WIDTH, height);
 
@@ -319,97 +293,23 @@ public class BattlefieldPanel extends JPanel {
         g.setFont(new Font("SansSerif", Font.BOLD, 22));
         drawCentred(g, "$" + team.getBudget(), x, budgetY + 28);
 
+        // Divider marking where future rows will start.
         g.setColor(SIDEBAR_DIVIDER);
         g.drawLine(x + SIDEBAR_PADDING, budgetY + 48,
                 x + SIDEBAR_WIDTH - SIDEBAR_PADDING, budgetY + 48);
-
-        Map<Boolean, Long> aliveBreakdown = getAliveBreakdown(team);
-        Map<String, Long> healthBreakdown = getHealthBreakdown(team);
-
-        int statsY = budgetY + 72;
-
-        g.setColor(LABEL_COLOUR);
-        g.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        drawCentred(g, "ARMY STATUS", x, statsY);
-
-        g.setColor(VALUE_COLOUR);
-        g.setFont(new Font("SansSerif", Font.PLAIN, 11));
-
-        drawCentred(g,
-                "Alive: " + aliveBreakdown.getOrDefault(false, 0L),
-                x, statsY + 22);
-
-        drawCentred(g,
-                "Dead: " + aliveBreakdown.getOrDefault(true, 0L),
-                x, statsY + 40);
-
-        g.setColor(SIDEBAR_DIVIDER);
-        g.drawLine(x + SIDEBAR_PADDING, statsY + 52,
-                x + SIDEBAR_WIDTH - SIDEBAR_PADDING, statsY + 52);
-
-        g.setColor(LABEL_COLOUR);
-        drawCentred(g, "HEALTH", x, statsY + 72);
-
-        g.setColor(VALUE_COLOUR);
-
-        drawCentred(g,
-                "Healthy: " + healthBreakdown.getOrDefault("Healthy", 0L),
-                x, statsY + 92);
-
-        drawCentred(g,
-                "Wounded: " + healthBreakdown.getOrDefault("Wounded", 0L),
-                x, statsY + 110);
-
-        drawCentred(g,
-                "Critical: " + healthBreakdown.getOrDefault("Critical", 0L),
-                x, statsY + 128);
-
-        drawCentred(g,
-                "Dead: " + healthBreakdown.getOrDefault("Dead", 0L),
-                x, statsY + 146);
     }
 
-    private Map<String, Long> getHealthBreakdown(Team team) {
-        return team.getArmy().stream()
-                .collect(Collectors.groupingBy(
-                        troop -> healthBand(troop),
-                        Collectors.counting()));
-    }
-
-    private Map<Boolean, Long> getAliveBreakdown(Team team) {
-        return team.getArmy().stream()
-                .collect(Collectors.partitioningBy(
-                        Troop::isDestroyed,
-                        Collectors.counting()));
-    }
-
-    private String healthBand(Troop troop) {
-        if (troop.isDestroyed()) {
-            return "Dead";
-        } else if (troop.getHealth() > 70) {
-            return "Healthy";
-        } else if (troop.getHealth() >= 30) {
-            return "Wounded";
-        } else {
-            return "Critical";
-        }
-    }
-
-    private void drawCentred(Graphics g, String text,
-            int x, int baselineY) {
-
+    private void drawCentred(Graphics g, String text, int x, int baselineY) {
         FontMetrics metrics = g.getFontMetrics();
-        int textX = x
-                + (SIDEBAR_WIDTH - metrics.stringWidth(text)) / 2;
-
+        int textX = x + (SIDEBAR_WIDTH - metrics.stringWidth(text)) / 2;
         g.drawString(text, textX, baselineY);
     }
 
     /* METHODS FOR ROUND ACCESS */
 
     /*
-     * Both these functions gets the team instance from round
-     * (isolates the teams to round)
+     * Both these functions gets the team instance from round (isolates the teams to
+     * round
      */
     private Team teamA() {
         return round.getTeamA();
