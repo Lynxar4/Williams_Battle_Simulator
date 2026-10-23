@@ -22,12 +22,12 @@ public class ArmyHealthCollector
         return (summary, troop) -> {
             if (troop.isDestroyed()) {
                 summary.addDead();
-            } else if (troop.getHealth() > 70) {
-                summary.addHealthy(troop.getHealth());
-            } else if (troop.getHealth() >= 30) {
-                summary.addWounded(troop.getHealth());
+            } else if (troop.getGroupHealth() > 70) {
+                summary.addHealthy(troop.getGroupHealth());
+            } else if (troop.getGroupHealth() >= 30) {
+                summary.addWounded(troop.getGroupHealth());
             } else {
-                summary.addCritical(troop.getHealth());
+                summary.addCritical(troop.getGroupHealth());
             }
         };
     }
