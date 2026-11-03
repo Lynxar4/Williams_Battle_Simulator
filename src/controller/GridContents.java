@@ -39,14 +39,9 @@ public class GridContents<T extends Positioned> {
         return row >= 0 && row < rowCount && column >= 0 && column < columnCount;
     }
 
-    // True when nothing held here sits at the given cell.
+    // true when nothing held here sits at the given cell
     public boolean isCellFree(int row, int column) {
-        for (T item : contents) {
-            if (item.isAt(row, column)) {
-                return false;
-            }
-        }
-        return true;
+        return contents.stream().noneMatch(item -> item.isAt(row, column));
     }
 
     /*
@@ -55,12 +50,14 @@ public class GridContents<T extends Positioned> {
      * common one on a mostly empty board.
      */
     public Optional<T> at(int row, int column) {
-        for (T item : contents) {
-            if (item.isAt(row, column)) {
-                return Optional.of(item);
-            }
-        }
-        return Optional.empty();
+        return contents.stream()
+                .filter(item -> item.isAt(row, column))
+                .findFirst();
+    }
+
+    // everything matching the caller's test, as a list it cannot change
+    public List<T> matching(Predicate<T> test) {
+        return contents.stream().filter(test).toList();
     }
 
     // Drops everything matching the test. The caller decides what "spent" means.
