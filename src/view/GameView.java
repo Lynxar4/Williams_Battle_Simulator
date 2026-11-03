@@ -1,0 +1,37 @@
+package view;
+
+import entity.Castle;
+import entity.Team;
+import entity.interactables.TileEffect;
+import entity.troops.Troop;
+import java.util.List;
+import java.util.function.BiPredicate;
+
+
+/*
+ * Everything the controller (Round and its states) can ask the screen to do.
+ * The controller only talks to this, never to Swing panels directly.
+ */
+public interface GameView {
+
+    /* ---- BOARD ---- */
+    void showBoard(int rows, int columns, Team teamA, Team teamB,
+                   Castle castleA, Castle castleB, List<TileEffect> tileEffects);
+
+    void refreshBoard();
+
+    /* ---- PLACEMENT (PlaceState) ---- */
+    void setPlacementEnabled(boolean isEnabled);
+    void showGold(int teamAGold, int teamBGold);
+    void setStartBattleAllowed(boolean allowed);
+    void setPlacementRule(PlacementRule rule);
+    void highlightMovingTroop(Troop troop); // null clears the highlight
+
+    /* ---- MESSAGES ---- */
+    void showMessage(String text, boolean isError);
+    void showLatestEvent(String text);
+
+    /* ---- ROUND OVER (RoundOverState) ---- */
+    void showRoundResult(String title, String reason);
+    void hideRoundResult();
+}

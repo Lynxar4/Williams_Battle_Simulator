@@ -3,13 +3,12 @@ package controller;
 import controller.states.*;
 import entity.*;
 import entity.interactables.*;
-import entity.troops.Attacker;
 import entity.troops.Troop;
 import entity.troops.TroopType;
+import view.GameView;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 /*
@@ -45,8 +44,6 @@ public class Round {
 
     private final Team teamA;
     private final Team teamB;
-    // Keep the amount actually paid so removing a group refunds it exactly once.
-    private final Map<Troop, Integer> purchaseCosts = new HashMap<>();
     private final Castle teamACastle;
     private final Castle teamBCastle;
 
@@ -57,9 +54,10 @@ public class Round {
     private final List<TileEffectListener> tileEffectListeners = new ArrayList<>();
 
     private GameState currentState;
+    private final GameView view;
 
     /* ---- CONSTRUCTORS ---- */
-    public Round(Team teamA, Team teamB) {
+    public Round(Team teamA, Team teamB, GameView view) {
         this.teamA = teamA;
         this.teamB = teamB;
         int castleRow = ROW_COUNT / 2 - CASTLE_SIZE / 2;
@@ -70,6 +68,7 @@ public class Round {
 
         // paying out gold is a reaction, not part of resolving the effect
         addTileEffectListener(new BudgetListener(teamA, teamB));
+        this.view = view;
     }
 
     /* ---- PUBLIC METHODS ---- */
@@ -79,11 +78,9 @@ public class Round {
 
     public void update() {
         currentState.update(this); // State needs access to Round's data
-    }
-
-    public void render() {
         currentState.render(this);
     }
+
 
     /*
      * Spawn all the tile effect that have been created
@@ -102,9 +99,7 @@ public class Round {
     // fires whatever the troop is standing on, tells the listeners if
     // anything actually happened, then clears out spent effects
     public void applyTileEffects(Troop troop) {
-        tileEffectBoard.at(troop.getRow(), troop.getColumn())
-                .flatMap(effect -> effect.onEnter(troop))
-                .ifPresent(this::fireTileEffectTriggered);
+        tileEffectBoard.at(troop.getRow(), troop.getColumn()).flatMap(effect -> effect.onEnter(troop)).ifPresent(this::fireTileEffectTriggered);
 
         tileEffectBoard.removeIf(TileEffect::isConsumed);
     }
@@ -112,112 +107,17 @@ public class Round {
     // extra damage the cell under this troop is worth. hills answer with
     // their bonus, everything else answers zero.
     public int damageBonusAt(Troop troop) {
-        return tileEffectBoard.at(troop.getRow(), troop.getColumn())
-                .map(effect -> effect.damageBonusFor(troop))
-                .orElse(0);
+        return tileEffectBoard.at(troop.getRow(), troop.getColumn()).map(effect -> effect.damageBonusFor(troop)).orElse(0);
     }
 
     // extra attack range the cell under this troop is worth. hills answer for
     // ranged troops only, everything else answers zero.
     public int rangeBonusAt(Troop troop) {
-        return tileEffectBoard.at(troop.getRow(), troop.getColumn())
-                .map(effect -> effect.rangeBonusFor(troop))
-                .orElse(0);
+        return tileEffectBoard.at(troop.getRow(), troop.getColumn()).map(effect -> effect.rangeBonusFor(troop)).orElse(0);
     }
 
     public boolean isCellFree(int row, int column) {
         return !isBlocked(row, column) && tileEffectBoard.isCellFree(row, column);
-    }
-
-    public boolean isPlacingTroops() {
-        return currentState instanceof PlaceState;
-    }
-
-    /* Validate everything before changing the army or charging the team. */
-    public Troop buyTroop(Troop.Team owner, TroopType type, int groupSize, int row, int column)
-            throws InvalidPlacementException {
-        if (!isPlacingTroops()) {
-            throw new InvalidPlacementException("Troops can only be bought during placement.");
-        }
-        if (owner == null || type == null) {
-            throw new InvalidPlacementException("Select a team and troop type first.");
-        }
-        validatePlacement(owner, row, column);
-
-        int cost;
-        try {
-            cost = type.getTotalCost(groupSize);
-        } catch (IllegalArgumentException e) {
-            throw new InvalidPlacementException(e.getMessage());
-        }
-        Team team = owner == Troop.Team.teamA ? teamA : teamB;
-        if (cost > team.getBudget()) {
-            throw new InvalidPlacementException("Not enough gold: this group costs $" + cost
-                    + ", but the team has $" + team.getBudget() + ".");
-        }
-
-        Troop troop = type.createTroop(row, column, groupSize, owner);
-        team.spendBudget(cost);
-        team.addTroop(troop);
-        purchaseCosts.put(troop, cost);
-        return troop;
-    }
-
-    public void movePlacedTroop(Troop troop, int row, int column) throws InvalidPlacementException {
-        validatePlacedTroop(troop);
-        if (troop.isAt(row, column)) {
-            return;
-        }
-        validatePlacement(troop.getTeam(), row, column);
-        troop.setPosition(row, column);
-    }
-
-    public int removePlacedTroop(Troop troop) throws InvalidPlacementException {
-        validatePlacedTroop(troop);
-        int refund = purchaseCosts.remove(troop);
-        Team team = getOwnTeam(troop);
-        team.getArmy().remove(troop);
-        team.addBudget(refund);
-        return refund;
-    }
-
-    private void validatePlacedTroop(Troop troop) throws InvalidPlacementException {
-        if (!isPlacingTroops()) {
-            throw new InvalidPlacementException("Groups can only be moved or removed before battle.");
-        }
-        if (troop == null || troop.isDestroyed() || !purchaseCosts.containsKey(troop)
-                || !getOwnTeam(troop).getArmy().contains(troop)) {
-            throw new InvalidPlacementException("Choose a placed group from this battle.");
-        }
-    }
-
-    private void validatePlacement(Troop.Team owner, int row, int column) throws InvalidPlacementException {
-        if (!castleBoard.isWithinBounds(row, column)) {
-            throw new InvalidPlacementException("Choose a tile inside the battlefield.");
-        }
-        if (ownerOfHalf(column) != owner) {
-            throw new InvalidPlacementException("Place Team A on the left half and Team B on the right half.");
-        }
-        if (!isCellFree(row, column)) {
-            throw new InvalidPlacementException("That tile is occupied. Choose an empty tile.");
-        }
-    }
-
-    public boolean canStartBattle() {
-        return isPlacingTroops() && hasLivingAttacker(teamA) && hasLivingAttacker(teamB);
-    }
-
-    private boolean hasLivingAttacker(Team team) {
-        return team.getArmy().stream()
-                .anyMatch(troop -> troop instanceof Attacker && !troop.isDestroyed());
-    }
-
-    public void startBattle() throws InvalidPlacementException {
-        if (!canStartBattle()) {
-            throw new InvalidPlacementException(
-                    "Priests cannot attack. Each team needs an Infantry, Archer or Cavalry group to start.");
-        }
-        setCurrentState(new BattleState());
     }
 
     public boolean isGameOver() {
@@ -240,35 +140,51 @@ public class Round {
         }
 
         if (defeatedA && defeatedB) {
-            setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW,
-                    "Both teams have lost their castle or their entire army."));
+            setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW, "Both teams have lost their castle or their entire army."));
         } else {
             String team = defeatedA ? "Team A" : "Team B";
             boolean castle = defeatedA ? castleA : castleB;
             boolean army = defeatedA ? armyA : armyB;
-            String reason = castle && army ? team + " lost its castle and its entire army."
-                    : castle ? team + "'s castle was destroyed." : team + "'s entire army was defeated.";
-            setCurrentState(new RoundOverState(defeatedA ? RoundOverState.Outcome.TEAM_B_WINS
-                    : RoundOverState.Outcome.TEAM_A_WINS, reason));
+            String reason = castle && army ? team + " lost its castle and its entire army." : castle ? team + "'s castle was destroyed." : team + "'s entire army was defeated.";
+            setCurrentState(new RoundOverState(defeatedA ? RoundOverState.Outcome.TEAM_B_WINS : RoundOverState.Outcome.TEAM_A_WINS, reason));
         }
         return true;
     }
 
     public boolean isBlocked(int row, int column) {
-        return !castleBoard.isWithinBounds(row, column)
-                || !castleBoard.isCellFree(row, column)
-                || isTroopAt(row, column);
+        return !castleBoard.isWithinBounds(row, column) || !castleBoard.isCellFree(row, column) || isTroopAt(row, column);
     }
 
-    public Team getEnemyTeam(Troop troop) {
-        return troop.getTeam() == Troop.Team.teamA ? teamB : teamA;
-    }
-    public Team getOwnTeam(Troop troop){
-        return troop.getTeam() == Troop.Team.teamA ? teamA : teamB;
+    public void tileClicked(Troop.Team team, TroopType type, int groupSize, int row, int column) {
+        currentState.onTileClicked(this, team, type, groupSize, row, column);
     }
 
-    public Castle getEnemyCastle(Troop troop) {
-        return troop.getTeam() == Troop.Team.teamA ? teamBCastle : teamACastle;
+    public void moveTroopRequested(Troop troop) {
+        currentState.onMoveTroopRequested(this, troop);
+    }
+
+    public void cancelMove() {
+        currentState.onCancelMove(this);
+    }
+
+    public void removeTroopRequested(Troop troop) {
+        currentState.onRemoveTroopRequested(this, troop);
+    }
+
+    public void startBattleRequested() {
+        currentState.onStartBattleRequested(this);
+    }
+
+    public void nextRoundRequested() {
+        currentState.onNextRoundRequested(this);
+    }
+
+    public boolean isWithinBoard(int row, int column) {
+        return castleBoard.isWithinBounds(row, column);// just reusing the isWithinBounds method, nth related to castle
+    }
+
+    public Team getTeam(Troop.Team owner) {
+        return owner == Troop.Team.teamA ? teamA : teamB;
     }
 
     /*---- PRIVATE METHODS ---- */
@@ -367,14 +283,13 @@ public class Round {
     /* Tile effects use the same occupancy check as troop purchases. */
     private void addTileEffect(TileEffect effect) throws InvalidPlacementException {
         if (!isCellFree(effect.getRow(), effect.getColumn())) {
-            throw new InvalidPlacementException(
-                    "Cell " + effect.getRow() + "," + effect.getColumn() + " is already taken.");
+            throw new InvalidPlacementException("Cell " + effect.getRow() + "," + effect.getColumn() + " is already taken.");
         }
 
         tileEffectBoard.place(effect);
     }
 
-    private Troop.Team ownerOfHalf(int column) {
+    public Troop.Team ownerOfHalf(int column) {
         return (column < COLUMN_COUNT / 2) ? Troop.Team.teamA : Troop.Team.teamB;
     }
 
@@ -411,10 +326,26 @@ public class Round {
         return COLUMN_COUNT;
     }
 
+    public Team getEnemyTeam(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamB : teamA;
+    }
+
+    public Team getOwnTeam(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamA : teamB;
+    }
+
+    public Castle getEnemyCastle(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamBCastle : teamACastle;
+    }
+
+    public GameView getView() {
+        return view;
+    }
+
     /* ---- SETTER METHODS ---- */
     public void setCurrentState(GameState state) {
         this.currentState = state;
-
+        state.onEnter(this);
     }
 
 }
