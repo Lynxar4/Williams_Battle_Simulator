@@ -38,10 +38,6 @@ public class Session {
         startTimer();
     }
 
-    public Round getRound() {
-        return round;
-    }
-
     public void restart() {
         if (timer != null) {
             timer.stop();

@@ -12,7 +12,5 @@ public class AllocateState implements GameState {
 
     @Override
     public void render(Round round) {
-        // I don't think this state needs to render anything
-
     }
 }
