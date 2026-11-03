@@ -86,6 +86,7 @@ java -cp bin TeamIntegrationTest
 java -cp bin GameOverTest
 java -cp bin TileEffectVisitorTest
 java -cp bin HillRangeTest
+java -cp bin SpawnStrategyTest
 java -cp bin PlacementEditingTest
 java -cp bin ArmyHealthTest
 java -cp bin ArmyHealthBenchmark

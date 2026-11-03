@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /*
 What Round is now responsible for?
@@ -35,6 +38,8 @@ public class Round {
     private static final int COIN_VALUE = 25;
     private static final int TRAP_COUNT = 4;
     private static final int TRAP_DAMAGE = 20;
+    // stops spawning spinning forever if there is nowhere left to put things
+    private static final int MAX_SPAWN_ATTEMPTS = 500;
 
     /* ---- PRIVATE VARIABLES ---- */
     /*
@@ -90,9 +95,24 @@ public class Round {
      */
     public void spawnTileEffects() {
         tileEffectBoard.clear(); // removes all the tile effects from previous round
-        spawnHills();
-        spawnCoins();
-        spawnTraps();
+
+        // hills and gold are neutral so they can land anywhere, just not right
+        // on top of a castle
+        SpawnStrategy openGround = SpawnStrategy.anywhere().awayFromEdges(CASTLE_SIZE);
+        spawn(HILL_COUNT, openGround,
+                cell -> new Hill(cell.row(), cell.column(), HILL_DAMAGE_BONUS));
+        spawn(COIN_COUNT, openGround,
+                cell -> new Coin(cell.row(), cell.column(), COIN_VALUE));
+
+        // a trap belongs to the team whose half it sits on, so each side gets
+        // its own strategy and its own share
+        spawnTrapsFor(Troop.Team.teamA);
+        spawnTrapsFor(Troop.Team.teamB);
+    }
+
+    private void spawnTrapsFor(Troop.Team owner) {
+        spawn(TRAP_COUNT / 2, SpawnStrategy.ownHalf(owner).awayFromEdges(CASTLE_SIZE),
+                cell -> new Trap(cell.row(), cell.column(), TRAP_DAMAGE, owner));
     }
 
     public void addTileEffectListener(TileEffectListener listener) {
@@ -127,6 +147,13 @@ public class Round {
 
     public boolean isCellFree(int row, int column) {
         return !isBlocked(row, column) && tileEffectBoard.isCellFree(row, column);
+    }
+
+    // every effect passing the caller's test. the caller says what it wants
+    // rather than round growing a method per question, and tests can be
+    // combined with and / or / negate.
+    public List<TileEffect> effectsMatching(Predicate<TileEffect> test) {
+        return tileEffectBoard.matching(test);
     }
 
     public boolean isPlacingTroops() {
@@ -275,24 +302,18 @@ public class Round {
 
     // the notify step. every listener gets the same event.
     private void fireTileEffectTriggered(TileEffectEvent event) {
-        for (TileEffectListener listener : tileEffectListeners) {
-            listener.onTileEffectTriggered(event);
-        }
+        tileEffectListeners.forEach(listener -> listener.onTileEffectTriggered(event));
     }
 
     private boolean isTroopAt(int row, int column) {
-        for (Troop troop : teamA.getArmy()) {
-            if (!troop.isDestroyed() && troop.isAt(row, column)) {
-                return true;
-            }
-        }
+        return livingTroops().anyMatch(troop -> troop.isAt(row, column));
+    }
 
-        for (Troop troop : teamB.getArmy()) {
-            if (!troop.isDestroyed() && troop.isAt(row, column)) {
-                return true;
-            }
-        }
-        return false;
+    // both armies as one stream of whatever is still alive. several checks
+    // want this and they all used to walk the two lists by hand.
+    private Stream<Troop> livingTroops() {
+        return Stream.concat(teamA.getArmy().stream(), teamB.getArmy().stream())
+                .filter(troop -> !troop.isDestroyed());
     }
 
     private void placeCastles() {
@@ -304,48 +325,20 @@ public class Round {
         }
     }
 
-    /*
-     * hills spawn at random empty cells at the start of the round
-     */
-    private void spawnHills() {
+    // the one spawning loop. where the effect may go and what to build there
+    // are both passed in, so hills, gold and traps share this instead of
+    // having a copy of it each.
+    // gives up after a fixed number of tries rather than spinning forever if
+    // the board has no room left.
+    private void spawn(int count, SpawnStrategy strategy, Function<Cell, TileEffect> factory) {
         int placed = 0;
+        int attempts = 0;
 
-        while (placed < HILL_COUNT) {
-            int row = random.nextInt(ROW_COUNT);
-            int column = random.nextInt(COLUMN_COUNT);
+        while (placed < count && attempts < MAX_SPAWN_ATTEMPTS) {
+            ++attempts;
+            Cell cell = strategy.pick(random, ROW_COUNT, COLUMN_COUNT);
 
-            if (tryAddTileEffect(new Hill(row, column, HILL_DAMAGE_BONUS))) {
-                ++placed;
-            }
-        }
-    }
-
-    private void spawnCoins() {
-        int placed = 0;
-
-        while (placed < COIN_COUNT) {
-            int row = random.nextInt(ROW_COUNT);
-            int column = random.nextInt(COLUMN_COUNT);
-
-            if (tryAddTileEffect(new Coin(row, column, COIN_VALUE))) {
-                ++placed;
-            }
-        }
-    }
-
-    /*
-     * Traps spawn at random for now. A trap belongs to whichever team owns the half
-     * it lands on, which is the same rule a placement stage will enforce, so only
-     * the choice of cell has to change later.
-     */
-    private void spawnTraps() {
-        int placed = 0;
-
-        while (placed < TRAP_COUNT) {
-            int row = random.nextInt(ROW_COUNT);
-            int column = random.nextInt(COLUMN_COUNT);
-
-            if (tryAddTileEffect(new Trap(row, column, TRAP_DAMAGE, ownerOfHalf(column)))) {
+            if (tryAddTileEffect(factory.apply(cell))) {
                 ++placed;
             }
         }
