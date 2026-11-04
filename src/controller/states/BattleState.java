@@ -1,6 +1,7 @@
 package controller.states;
 
 import controller.Round;
+import entity.Castle;
 import entity.Damageable;
 import entity.Positioned;
 import entity.Team;
@@ -183,6 +184,17 @@ public class BattleState implements GameState {
     }
 
     private int distance(Positioned a, Positioned b) {
+        if (b instanceof Castle castle) {
+            int closestRow = Math.max(castle.getRow(),
+                    Math.min(a.getRow(), castle.getRow() + castle.getSize() - 1));
+
+            int closestColumn = Math.max(castle.getColumn(),
+                    Math.min(a.getColumn(), castle.getColumn() + castle.getSize() - 1));
+
+            return Math.abs(a.getRow() - closestRow)
+                    + Math.abs(a.getColumn() - closestColumn);
+        }
+
         return Math.abs(a.getRow() - b.getRow()) + Math.abs(a.getColumn() - b.getColumn());
     }
 
