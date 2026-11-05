@@ -49,6 +49,9 @@ the working directory, so running from `src/` leaves them blank.
 - A team loses when its castle is destroyed or every group in its army is dead.
   Battle stops immediately and shows the winner and reason. If both teams are
   defeated when checked, the result is a draw.
+- The game-over card compares each team's starting soldiers, survivors, losses
+  and remaining castle HP. Counts include priests and exclude groups removed
+  before battle. The summary is captured at game over and stays fixed.
 - Click Restart on the game-over prompt to return to buying in the same window,
   with fresh castles, empty armies, $500 per team, and a new battlefield.
 

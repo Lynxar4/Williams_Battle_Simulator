@@ -1,4 +1,5 @@
 import controller.Round;
+import controller.BattleSummary;
 import controller.Session;
 import controller.states.RoundOverState;
 import entity.InvalidPlacementException;
@@ -17,6 +18,7 @@ public class GameOverTest {
         checkPlacementDoesNotEnd();
         checkDefeatConditions();
         checkRemainingGroupsAndDraws();
+        checkBattleSummary();
         checkNoExtraTurns();
         checkTrapElimination();
         checkRestart();
@@ -102,7 +104,44 @@ public class GameOverTest {
             }
             draw.update();
             check(result(draw).getOutcome() == RoundOverState.Outcome.DRAW, "Simultaneous defeat should be a draw");
+            BattleSummary summary = result(draw).getSummary();
+            check(summary.teamA().started() == 1 && summary.teamB().started() == 1
+                            && summary.teamA().survived() == (castles ? 1 : 0)
+                            && summary.teamB().survived() == (castles ? 1 : 0),
+                    "Draws need a summary for both teams");
         }
+    }
+
+    private static void checkBattleSummary() throws Exception {
+        Round round = placementRound();
+        Troop infantry = round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 3, 0, 0);
+        Troop priests = round.buyTroop(Troop.Team.teamA, TroopType.PRIEST, 2, 0, 1);
+        Troop removed = round.buyTroop(Troop.Team.teamA, TroopType.ARCHER, 4, 0, 2);
+        round.removePlacedTroop(removed);
+        Troop cavalry = round.buyTroop(Troop.Team.teamB, TroopType.CAVALRY, 4, 0, 29);
+        Troop enemy = round.buyTroop(Troop.Team.teamB, TroopType.INFANTRY, 2, 1, 29);
+        round.startBattle();
+        infantry.takeDamage(134); // Armour reduces this to 100: two soldiers survive.
+        priests.takeDamage(101); // One partially injured priest survives.
+        cavalry.takeDamage(10_000);
+        enemy.takeDamage(5); // Partial damage does not count as a lost soldier.
+        round.getTeamACastle().takeDamage(123);
+        round.getTeamBCastle().takeDamage(10_000);
+        round.checkGameOver();
+
+        BattleSummary summary = result(round).getSummary();
+        check(summary.teamA().equals(new BattleSummary.ArmyResult(5, 3, 877)),
+                "Summary must include priests and exclude refunded groups");
+        check(summary.teamA().lost() == 2, "Summary must count lost soldiers, not groups");
+        check(summary.teamB().equals(new BattleSummary.ArmyResult(6, 2, 0)) && summary.teamB().lost() == 4,
+                "Summary must include defeated groups and clamp destroyed castle HP to zero");
+
+        infantry.takeDamage(10_000);
+        round.getTeamB().getArmy().clear();
+        round.getTeamACastle().takeDamage(10_000);
+        check(summary.teamA().survived() == 3 && summary.teamA().castleHealth() == 877
+                        && summary.teamB().started() == 6 && result(round).getSummary() == summary,
+                "Finished results must be a fixed snapshot of the end of battle");
     }
 
     private static void checkNoExtraTurns() throws Exception {
