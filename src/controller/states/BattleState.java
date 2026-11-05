@@ -172,6 +172,19 @@ public class BattleState implements GameState {
         if (rowStep != 0 && tryMove(round, troop, troop.getRow() + rowStep, troop.getColumn())) {
             return true;
         }
+
+        // If the primary directions were blocked, try the alternative axis to move around.
+        // This fixes the issue where troops get stuck behind allies who are blocking the direct path.
+        if (colStep == 0 && rowStep != 0) {
+            // Try moving sideways to bypass the block
+            if (tryMove(round, troop, troop.getRow(), troop.getColumn() + 1)) return true;
+            if (tryMove(round, troop, troop.getRow(), troop.getColumn() - 1)) return true;
+        } else if (rowStep == 0 && colStep != 0) {
+            // Try moving vertically to bypass the block
+            if (tryMove(round, troop, troop.getRow() + 1, troop.getColumn())) return true;
+            if (tryMove(round, troop, troop.getRow() - 1, troop.getColumn())) return true;
+        }
+
         return false;
     }
 
