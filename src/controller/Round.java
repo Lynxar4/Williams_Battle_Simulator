@@ -6,11 +6,9 @@ import entity.interactables.*;
 import entity.troops.Troop;
 import entity.troops.TroopType;
 import view.GameView;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
 /*
 What Round is now responsible for?
 - Holding the board: castles, tile effects, grid size
@@ -38,7 +36,7 @@ public class Round {
     /* ---- PRIVATE VARIABLES ---- */
     /*
      * holds the information for all the entites on the board
-     */
+    */
     private final GridContents<TileEffect> tileEffectBoard = new GridContents<>(ROW_COUNT, COLUMN_COUNT);
     private final GridContents<Castle> castleBoard = new GridContents<>(ROW_COUNT, COLUMN_COUNT);
 
@@ -52,7 +50,6 @@ public class Round {
     // listeners that react when a tile effect fires. round holds them but
     // does not know what any of them do.
     private final List<TileEffectListener> tileEffectListeners = new ArrayList<>();
-
     private GameState currentState;
     private final GameView view;
 
@@ -118,37 +115,6 @@ public class Round {
 
     public boolean isCellFree(int row, int column) {
         return !isBlocked(row, column) && tileEffectBoard.isCellFree(row, column);
-    }
-
-    public boolean isGameOver() {
-        return currentState instanceof RoundOverState;
-    }
-
-    /* Only the battle phase checks defeat; empty armies are normal during buying. */
-    public boolean checkGameOver() {
-        if (!(currentState instanceof BattleState)) {
-            return isGameOver();
-        }
-        boolean castleA = teamACastle.isDestroyed();
-        boolean castleB = teamBCastle.isDestroyed();
-        boolean armyA = teamA.getArmy().stream().noneMatch(troop -> !troop.isDestroyed());
-        boolean armyB = teamB.getArmy().stream().noneMatch(troop -> !troop.isDestroyed());
-        boolean defeatedA = castleA || armyA;
-        boolean defeatedB = castleB || armyB;
-        if (!defeatedA && !defeatedB) {
-            return false;
-        }
-
-        if (defeatedA && defeatedB) {
-            setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW, "Both teams have lost their castle or their entire army."));
-        } else {
-            String team = defeatedA ? "Team A" : "Team B";
-            boolean castle = defeatedA ? castleA : castleB;
-            boolean army = defeatedA ? armyA : armyB;
-            String reason = castle && army ? team + " lost its castle and its entire army." : castle ? team + "'s castle was destroyed." : team + "'s entire army was defeated.";
-            setCurrentState(new RoundOverState(defeatedA ? RoundOverState.Outcome.TEAM_B_WINS : RoundOverState.Outcome.TEAM_A_WINS, reason));
-        }
-        return true;
     }
 
     public boolean isBlocked(int row, int column) {

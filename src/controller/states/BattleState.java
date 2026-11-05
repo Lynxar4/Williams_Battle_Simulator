@@ -8,24 +8,32 @@ import entity.troops.Attacker;
 import entity.troops.Healable;
 import entity.troops.Troop;
 import entity.troops.support.Healer;
+import view.GameView;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class BattleState implements GameState {
+    @Override
+    public void onEnter(Round round) {
+        GameView view = round.getView();
+        view.setPlacementEnabled(false);
+        view.showMessage("Battle in progress. Buying and placement are closed.", false);
+    }
 
     @Override
     public void update(Round round) {
-        if (!round.checkGameOver()) {
-            runSequence(round);
+        if (endRoundIfOver(round)) {
+            return; // someone already lost before anyone moved
         }
+        runSequence(round);
     }
 
     @Override
     public void render(Round round) {
+        round.getView().refreshBoard();
     }
-
     private void runSequence(Round round) {
         for (Troop troop : buildTurnOrder(round)) {
             if (troop.isDestroyed()) {
@@ -33,14 +41,14 @@ public class BattleState implements GameState {
             }
             moveTroop(round, troop);
             round.applyTileEffects(troop); // whatever it landed on gets its turn
-            if (round.checkGameOver()) {
+            if (endRoundIfOver(round)) {
                 return;
             }
             if (troop.isDestroyed()) {
                 continue; // a trap can kill it before it gets to act
             }
             actIfInRange(round, troop);
-            if (round.checkGameOver()) {
+            if (endRoundIfOver(round)) {
                 return;
             }
         }
@@ -90,8 +98,6 @@ public class BattleState implements GameState {
         return (a.getTeam() == firstTeam) ? -1 : 1;
     }
     /*  ---------   */
-
-    /*  MOVEMENT LOGIC*/
 
     /*
         Moves the troop 1 cell per step instead of one big jump. Steps match the troop's speed member.
@@ -184,6 +190,46 @@ public class BattleState implements GameState {
 
     private int distance(Positioned a, Positioned b) {
         return Math.abs(a.getRow() - b.getRow()) + Math.abs(a.getColumn() - b.getColumn());
+    }
+    private boolean endRoundIfOver(Round round) {
+        boolean castleA = round.getTeamACastle().isDestroyed();
+        boolean castleB = round.getTeamBCastle().isDestroyed();
+        boolean armyA = isArmyDefeated(round.getTeamA());
+        boolean armyB = isArmyDefeated(round.getTeamB());
+        boolean defeatedA = castleA || armyA;
+        boolean defeatedB = castleB || armyB;
+
+        if (!defeatedA && !defeatedB) {
+            return false;
+        }
+
+        if (defeatedA && defeatedB) {
+            round.setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW,
+                    "Both teams have lost their castle or their entire army."));
+            return true;
+        }
+
+        String team = defeatedA ? "Team A" : "Team B";
+        boolean castle = defeatedA ? castleA : castleB;
+        boolean army = defeatedA ? armyA : armyB;
+        String reason;
+        if (castle && army) {
+            reason = team + " lost its castle and its entire army.";
+        } else if (castle) {
+            reason = team + "'s castle was destroyed.";
+        } else {
+            reason = team + "'s entire army was defeated.";
+        }
+
+        RoundOverState.Outcome outcome = defeatedA
+                ? RoundOverState.Outcome.TEAM_B_WINS
+                : RoundOverState.Outcome.TEAM_A_WINS;
+        round.setCurrentState(new RoundOverState(outcome, reason));
+        return true;
+    }
+
+    private boolean isArmyDefeated(Team team) {
+        return team.getArmy().stream().allMatch(Troop::isDestroyed);
     }
 
     /*  ----------- */

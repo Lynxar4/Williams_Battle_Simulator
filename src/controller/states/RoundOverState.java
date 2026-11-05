@@ -1,6 +1,7 @@
 package controller.states;
 
 import controller.Round;
+import view.GameView;
 
 public class RoundOverState implements GameState {
     public enum Outcome {
@@ -32,13 +33,10 @@ public class RoundOverState implements GameState {
     }
 
     @Override
-    public void update(Round round) {
-        // The finished round stays frozen until the session restarts.
-    }
-
-    @Override
-    public void render(Round round) {
-        // Session displays the result without adding Swing dependencies to this state.
+    public void onEnter(Round round) {
+        GameView view = round.getView();
+        view.refreshBoard();                     // draw the final position once
+        view.showRoundResult(getTitle(), reason);
     }
 
 }
