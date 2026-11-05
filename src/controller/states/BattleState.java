@@ -9,9 +9,14 @@ import entity.troops.Attacker;
 import entity.troops.Healable;
 import entity.troops.Troop;
 import entity.troops.support.Healer;
+import entity.interactables.Hill;
+import entity.interactables.TileEffect;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class BattleState implements GameState {
@@ -104,10 +109,52 @@ public class BattleState implements GameState {
             if (target == null || isInRange(round, troop, target)) {
                 return;
             }
-            if (!stepToward(round, troop, target)) {
+
+            // a free hill close by is worth stepping aside for, because
+            // holding it pays for the rest of the fight. if the detour is
+            // blocked the troop carries on at its target as before.
+            Optional<TileEffect> hill = hillWorthTaking(round, troop, target);
+            boolean moved = hill.map(free -> stepOnto(round, troop, free)).orElse(false)
+                    || stepToward(round, troop, target);
+
+            if (!moved) {
                 return;
             }
         }
+    }
+
+    /* HIGH GROUND */
+
+    // a hill nobody has claimed yet. a claimed one is no use: the second
+    // team to arrive gets nothing.
+    private static final Predicate<TileEffect> UNCLAIMED_HILL =
+            effect -> effect instanceof Hill hill && !hill.isClaimed();
+
+    // how far out of its way a troop will go for one
+    private static final int MAX_HILL_DETOUR = 5;
+
+    private Optional<TileEffect> hillWorthTaking(Round round, Troop troop, Positioned target) {
+        // priests gain nothing from height, and a troop already holding a
+        // hill should stay on it
+        if (!(troop instanceof Attacker) || round.damageBonusAt(troop) > 0) {
+            return Optional.empty();
+        }
+
+        int toTarget = distance(troop, target);
+
+        return round.effectsMatching(UNCLAIMED_HILL).stream()
+                .filter(hill -> distance(troop, hill) <= MAX_HILL_DETOUR)
+                .filter(hill -> distance(troop, hill) < toTarget)
+                .min(Comparator.comparingInt(hill -> distance(troop, hill)));
+    }
+
+    // stepToward stops one short because it assumes you attack from next to
+    // the target. a hill has to be stood on, so the last step is taken here.
+    private boolean stepOnto(Round round, Troop troop, Positioned destination) {
+        if (distance(troop, destination) == 1) {
+            return tryMove(round, troop, destination.getRow(), destination.getColumn());
+        }
+        return stepToward(round, troop, destination);
     }
 
     // high ground lets ranged troops shoot further, so range is read from the
