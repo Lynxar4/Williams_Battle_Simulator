@@ -1,6 +1,7 @@
 package controller.states;
 
 import controller.Round;
+import controller.BattleSummary;
 
 public class RoundOverState implements GameState {
     public enum Outcome {
@@ -9,10 +10,12 @@ public class RoundOverState implements GameState {
 
     private final Outcome outcome;
     private final String reason;
+    private final BattleSummary summary;
 
-    public RoundOverState(Outcome outcome, String reason) {
+    public RoundOverState(Outcome outcome, String reason, BattleSummary summary) {
         this.outcome = outcome;
         this.reason = reason;
+        this.summary = summary;
     }
 
     public Outcome getOutcome() {
@@ -29,6 +32,10 @@ public class RoundOverState implements GameState {
 
     public String getReason() {
         return reason;
+    }
+
+    public BattleSummary getSummary() {
+        return summary;
     }
 
     @Override
