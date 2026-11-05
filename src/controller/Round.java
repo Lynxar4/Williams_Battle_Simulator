@@ -156,6 +156,14 @@ public class Round {
         return tileEffectBoard.matching(test);
     }
 
+    // counts what is still on the board in one pass.
+    // sequential on purpose: there are fourteen effects, and the benchmark in
+    // tests shows the split costs more than it saves until there are tens of
+    // thousands. the collector itself is parallel safe either way.
+    public TileEffectSummary tileEffectSummary() {
+        return getTileEffects().stream().collect(new TileEffectSummaryCollector());
+    }
+
     public boolean isPlacingTroops() {
         return currentState instanceof PlaceState;
     }

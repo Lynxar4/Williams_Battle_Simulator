@@ -90,6 +90,8 @@ java -cp bin GameOverTest
 java -cp bin TileEffectVisitorTest
 java -cp bin HillRangeTest
 java -cp bin SpawnStrategyTest
+java -cp bin TileEffectSummaryTest
+java -cp bin HillDetourTest
 java -cp bin PlacementEditingTest
 java -cp bin ArmyHealthTest
 java -cp bin ArmyHealthBenchmark
