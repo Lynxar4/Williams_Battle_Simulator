@@ -29,6 +29,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 public class TroopPurchasePanel extends JPanel {
+    /* ---- PRIVATE VARIABLES ---- */
     private PlayerActions actions;   // set after Round is created
     private int teamAGold;
     private int teamBGold;
@@ -43,7 +44,7 @@ public class TroopPurchasePanel extends JPanel {
     private final JButton startBattle = new JButton("Start Battle");
     private final JFormattedTextField sizeInput;
 
-    /* ---- CONSTRUCTOR ---- */
+    /* ---- CONSTRUCTORS ---- */
     public TroopPurchasePanel(BattlefieldPanel battlefield) {
         this.battlefield = battlefield;
         setLayout(new BorderLayout(0, 12));
@@ -123,6 +124,37 @@ public class TroopPurchasePanel extends JPanel {
         refreshQuote();
     }
 
+    /* ---- PUBLIC METHODS ---- */
+    public void showMessage(String text, boolean error) {
+        message.setText(text);
+        message.setForeground(error ? SimulationTheme.ERROR : SimulationTheme.TEXT);
+    }
+
+    public void showGold(int teamAGold, int teamBGold) {
+        this.teamAGold = teamAGold;
+        this.teamBGold = teamBGold;
+        refreshQuote();
+    }
+
+    /* ---- SETTER METHODS ---- */
+    public void setPlayerActions(PlayerActions actions) {
+        this.actions = actions;
+    }
+
+    public void setPlacementEnabled(boolean enabled) {
+        placementEnabled = enabled;
+        teamSelector.setEnabled(enabled);
+        troopSelector.setEnabled(enabled);
+        groupSize.setEnabled(enabled);
+        startBattle.setEnabled(enabled);
+        refreshQuote();
+    }
+
+    public void setStartBattleAllowed(boolean allowed) {
+        startBattle.setToolTipText(allowed ? null
+                : "Each team needs an Infantry, Archer or Cavalry group. Priests only heal.");
+    }
+
     /* ---- PRIVATE METHODS ---- */
     private void addInput(JPanel controls, String text, javax.swing.JComponent input, int column, double weight) {
         JPanel field = new JPanel(new BorderLayout(0, 6));
@@ -191,36 +223,5 @@ public class TroopPurchasePanel extends JPanel {
             quote.setText("Enter a valid group size");
             quote.setForeground(SimulationTheme.ERROR);
         }
-    }
-
-
-    /* ---- PUBLIC METHODS ---- */
-    public void showMessage(String text, boolean error) {
-        message.setText(text);
-        message.setForeground(error ? SimulationTheme.ERROR : SimulationTheme.TEXT);
-    }
-
-    public void setPlayerActions(PlayerActions actions) {
-        this.actions = actions;
-    }
-
-    public void setPlacementEnabled(boolean enabled) {
-        placementEnabled = enabled;
-        teamSelector.setEnabled(enabled);
-        troopSelector.setEnabled(enabled);
-        groupSize.setEnabled(enabled);
-        startBattle.setEnabled(enabled);
-        refreshQuote();
-    }
-
-    public void showGold(int teamAGold, int teamBGold) {
-        this.teamAGold = teamAGold;
-        this.teamBGold = teamBGold;
-        refreshQuote();
-    }
-
-    public void setStartBattleAllowed(boolean allowed) {
-        startBattle.setToolTipText(allowed ? null
-                : "Each team needs an Infantry, Archer or Cavalry group. Priests only heal.");
     }
 }

@@ -11,11 +11,13 @@ import javax.swing.JPanel;
 
 /* A glass-pane prompt keeps the final battlefield visible while blocking placement. */
 public class RoundOverPanel extends JPanel {
+    /* ---- PRIVATE VARIABLES ---- */
     private final JButton nextRound = new JButton("Next Round");
     private final JLabel winner = new JLabel();
     private final JLabel reason = new JLabel();
     private final JPanel summaryHolder = new JPanel(new BorderLayout()); // table goes in here
 
+    /* ---- CONSTRUCTORS ---- */
     public RoundOverPanel(Runnable nextRoundAction) {
         super(new GridBagLayout());
         setOpaque(false);
@@ -65,6 +67,30 @@ public class RoundOverPanel extends JPanel {
         add(card);
     }
 
+    /* ---- PUBLIC METHODS ---- */
+    public void showResult(String title, String reasonText, BattleSummary summary) {
+        winner.setText(title);
+        reason.setText(reasonText);
+        summaryHolder.removeAll();                 // remove last round's table
+        summaryHolder.add(summaryTable(summary));  // add this round's table
+        summaryHolder.revalidate();                // recalculate the layout
+        summaryHolder.repaint();
+    }
+
+    /* ---- OVERRIDES ---- */
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.setColor(new Color(0, 0, 0, 110));
+        g.fillRect(0, 0, getWidth(), getHeight());
+    }
+
+    /* ---- GETTER METHODS ---- */
+    public JButton getNextRoundButton() {
+        return nextRound;
+    }
+
+    /* ---- PRIVATE METHODS ---- */
     private JPanel summaryTable(BattleSummary summary) {
         JPanel table = new JPanel(new GridLayout(0, 3, 28, 10));
         table.setOpaque(false);
@@ -97,22 +123,5 @@ public class RoundOverPanel extends JPanel {
         label.setFont(SimulationTheme.BODY.deriveFont(bold ? Font.BOLD : Font.PLAIN));
         label.setForeground(colour);
         return label;
-    }
-    public JButton getNextRoundButton() {
-        return nextRound;
-    }
-    public void showResult(String title, String reasonText,BattleSummary summary) {
-        winner.setText(title);
-        reason.setText(reasonText);
-        summaryHolder.removeAll();                 // remove last round's table
-        summaryHolder.add(summaryTable(summary));  // add this round's table
-        summaryHolder.revalidate();                // recalculate the layout
-        summaryHolder.repaint();
-    }
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        g.setColor(new Color(0, 0, 0, 110));
-        g.fillRect(0, 0, getWidth(), getHeight());
     }
 }

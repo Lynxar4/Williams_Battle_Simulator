@@ -25,9 +25,8 @@ import java.util.stream.Collector;
 // does not matter how the stream splits the work.
 public class TileEffectSummaryCollector
         implements Collector<TileEffect, TileEffectSummaryCollector.Tally, TileEffectSummary> {
-
-    /* ---- THE ACCUMULATOR ---- */
-
+    /* ---- NESTED CLASSES ---- */
+    /* THE ACCUMULATOR */
     // mutable on purpose, and never shared. visitHill and friends return the
     // tally so the accumulator below is a single expression.
     public static final class Tally implements TileEffectVisitor<Tally> {
@@ -87,8 +86,8 @@ public class TileEffectSummaryCollector
         }
     }
 
-    /* ---- THE COLLECTOR ---- */
-
+    /* ---- OVERRIDES ---- */
+    /* THE COLLECTOR */
     @Override
     public Supplier<Tally> supplier() {
         return Tally::new;

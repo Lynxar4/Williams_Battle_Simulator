@@ -6,13 +6,11 @@ import entity.interactables.TileEffect;
 import entity.troops.Troop;
 import java.util.List;
 
-
 /*
  * Everything the controller (Round and its states) can ask the screen to do.
  * The controller only talks to this, never to Swing panels directly.
  */
 public interface GameView {
-
     void showBoard(int rows, int columns, Team teamA, Team teamB,
                    Castle castleA, Castle castleB, List<TileEffect> tileEffects);
 

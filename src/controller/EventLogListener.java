@@ -12,14 +12,13 @@ import java.util.List;
 // other exists.
 
 public class EventLogListener implements TileEffectListener {
-
     /* ---- STATIC VARIABLES ---- */
     private static final int MAX_ENTRIES = 6;
 
     /* ---- PRIVATE VARIABLES ---- */
     private final Deque<String> entries = new ArrayDeque<>();
 
-    /* ---- PUBLIC METHODS ---- */
+    /* ---- OVERRIDES ---- */
     @Override
     public void onTileEffectTriggered(TileEffectEvent event) {
         entries.addFirst(event.description());

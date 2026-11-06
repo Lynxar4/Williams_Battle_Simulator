@@ -9,6 +9,7 @@ import java.util.Optional;
  * Melee and ranged troop classes extend this.
  */
 public abstract class Attacker extends Troop implements Healable {
+    /* ---- PRIVATE VARIABLES ---- */
     private Damageable target;
 
     /* ---- CONSTRUCTORS ---- */
@@ -17,12 +18,6 @@ public abstract class Attacker extends Troop implements Healable {
     }
 
     /* ---- PUBLIC METHODS ---- */
-    @Override
-    public void beHealed(int healAmount) {
-        groupHealth = Math.min(groupHealth + healAmount, getMaxHealth());
-        markHealed();
-    }
-
     /*
      * damageBonus comes from whatever the attacker happens to be standing on -
      * currently a hill held by its own team. It is passed in rather than
@@ -34,6 +29,13 @@ public abstract class Attacker extends Troop implements Healable {
 
     public void attack() {
         attack(0);
+    }
+
+    /* ---- OVERRIDES ---- */
+    @Override
+    public void beHealed(int healAmount) {
+        groupHealth = Math.min(groupHealth + healAmount, getMaxHealth());
+        markHealed();
     }
 
     /* ---- GETTER METHODS ---- */
@@ -53,5 +55,4 @@ public abstract class Attacker extends Troop implements Healable {
     public void setTarget(Damageable target) {
         this.target = target;
     }
-
 }

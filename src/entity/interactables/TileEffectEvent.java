@@ -7,9 +7,7 @@ import entity.troops.Troop;
 // can react without knowing which kind of effect fired.
 
 public record TileEffectEvent(TileEffect effect, Troop troop, String description, int budgetChange) {
-
     /* ---- FACTORY METHODS ---- */
-
     // an event that changes nothing but is worth reporting
     public static TileEffectEvent of(TileEffect effect, Troop troop, String description) {
         return new TileEffectEvent(effect, troop, description, 0);

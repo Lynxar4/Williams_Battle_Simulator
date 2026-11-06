@@ -9,7 +9,6 @@ import java.util.Random;
 // so a new rule is a lambda rather than another copy of the loop.
 @FunctionalInterface
 public interface SpawnStrategy {
-
     // suggests one cell. the caller still checks whether it is free, so this
     // is allowed to suggest a taken cell and be asked again.
     Cell pick(Random random, int rowCount, int columnCount);

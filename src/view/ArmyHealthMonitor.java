@@ -9,19 +9,23 @@ import javax.swing.SwingWorker;
 
 /* Owns one worker at a time; newer requests replace any waiting snapshot. */
 public final class ArmyHealthMonitor {
+    /* ---- RECORDS ---- */
     public record Summaries(ArmyHealthSummary teamA, ArmyHealthSummary teamB) { }
 
     private record Request(long revision, List<GroupHealthSnapshot> teamA, List<GroupHealthSnapshot> teamB) { }
 
+    /* ---- PRIVATE VARIABLES ---- */
     private final Consumer<Summaries> onReady;
     private SwingWorker<Summaries, Void> worker;
     private Request pending;
     private long revision;
 
+    /* ---- CONSTRUCTORS ---- */
     public ArmyHealthMonitor(Consumer<Summaries> onReady) {
         this.onReady = onReady;
     }
 
+    /* ---- PUBLIC METHODS ---- */
     public void request(Team teamA, Team teamB) {
         requireEventThread();
         // Copy primitive fields, not references to mutable Troop objects.
@@ -38,6 +42,7 @@ public final class ArmyHealthMonitor {
         // An older worker may finish, but its revision can no longer update the UI.
     }
 
+    /* ---- PRIVATE METHODS ---- */
     private void startNext() {
         Request request = pending;
         pending = null;

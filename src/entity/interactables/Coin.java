@@ -19,15 +19,6 @@ public class Coin extends TileEffect {
         collectedBy = null;
     }
 
-    /* ---- GETTER METHODS ---- */
-    public int getAmount() {
-        return amount;
-    }
-
-    public Troop.Team getCollectedBy() {
-        return collectedBy;
-    }
-
     /* ---- OVERRIDES ---- */
     @Override
     public Optional<TileEffectEvent> onEnter(Troop troop) {
@@ -55,4 +46,12 @@ public class Coin extends TileEffect {
         return visitor.visitCoin(this);
     }
 
+    /* ---- GETTER METHODS ---- */
+    public int getAmount() {
+        return amount;
+    }
+
+    public Troop.Team getCollectedBy() {
+        return collectedBy;
+    }
 }

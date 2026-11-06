@@ -5,7 +5,6 @@ package entity.interactables;
 // instanceof.
 // R is whatever the job produces: an Image for sprites, a String for tooltips.
 public interface TileEffectVisitor<R> {
-
     R visitHill(Hill hill);
 
     R visitCoin(Coin coin);

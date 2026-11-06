@@ -7,7 +7,6 @@ import entity.troops.Stats;
  * Base class for melee troop types: they fight up close and have armour.
  */
 public abstract class Melee extends Attacker {
-
     /* ---- CONSTRUCTORS ---- */
     public Melee(int row, int column, Stats stats, int initialGroupSize, Team team) {
         super(row, column, stats, initialGroupSize, team);

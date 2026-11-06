@@ -19,12 +19,35 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class BattleState implements GameState {
+    /* ---- RECORDS ---- */
+    /* MOVEMENT LOGIC */
+    // A simple helper to represent a coordinate in the grid for pathfinding
+    record PathNode(int row, int col) implements Positioned {
+        @Override
+        public boolean isAt(int row, int column) {
+            return this.row == row && this.col == column;
+        }
+
+        @Override
+        public int getRow() {
+            return row;
+        }
+
+        @Override
+        public int getColumn() {
+            return col;
+        }
+    }
+
+    /* ---- STATIC VARIABLES ---- */
     // a hill nobody has claimed yet. a claimed one is no use: the second
     // team to arrive gets nothing.
     private static final Predicate<TileEffect> UNCLAIMED_HILL = effect -> effect instanceof Hill hill && !hill.isClaimed();
+
     // how far out of its way a troop will go for one
     private static final int MAX_HILL_DETOUR = 5;
 
+    /* ---- OVERRIDES ---- */
     @Override
     public void onEnter(Round round) {
         GameView view = round.getView();
@@ -45,6 +68,7 @@ public class BattleState implements GameState {
         round.getView().refreshBoard();
     }
 
+    /* ---- PRIVATE METHODS ---- */
     private void runSequence(Round round) {
         for (Troop troop : buildTurnOrder(round)) {
             if (troop.isDestroyed()) {
@@ -68,7 +92,7 @@ public class BattleState implements GameState {
     private void actIfInRange(Round round, Troop troop) {
         Positioned target = troop.getTarget();
 
-        //Does nothing if there is no target or target is out of range
+        // Does nothing if there is no target or target is out of range
         if (target == null || !isInRange(round, troop, target)) {
             return;
         }
@@ -79,11 +103,10 @@ public class BattleState implements GameState {
             healer.heal();
         }
     }
-    /*  ---------   */
 
-    /*  TURN BUILDING LOGIC*/
+    /* TURN BUILDING LOGIC */
     private List<Troop> buildTurnOrder(Round round) {
-        //Randomly chooses a team to go first in case of a tie during comparison
+        // Randomly chooses a team to go first in case of a tie during comparison
         Troop.Team firstTeam = (Math.random() < 0.5) ? Troop.Team.teamA : Troop.Team.teamB;
         return Stream.concat(round.getTeamA().getArmy().stream(), round.getTeamB().getArmy().stream()).filter(troop -> !troop.isDestroyed()).sorted((a, b) -> compareTurn(a, b, firstTeam)).toList();
     }
@@ -92,12 +115,12 @@ public class BattleState implements GameState {
         int statA = a.getSpeed() + a.getAttackSpeed();
         int statB = b.getSpeed() + b.getAttackSpeed();
 
-        //Different Total: Higher goes first
+        // Different Total: Higher goes first
         if (statA != statB) {
             return statB - statA;
         }
 
-        //Same Total, Same Team: keep as is
+        // Same Total, Same Team: keep as is
         if (a.getTeam() == b.getTeam()) {
             return 0;
         }
@@ -106,6 +129,7 @@ public class BattleState implements GameState {
         return (a.getTeam() == firstTeam) ? -1 : 1;
     }
 
+    /* MOVEMENT LOGIC */
     // The BFS Pathfinding Method
     // Spreads out from the troop one step at a time until it finds a free cell where the target is in range
     private List<Positioned> findPath(Round round, Troop troop, Positioned target, int range) {
@@ -165,8 +189,6 @@ public class BattleState implements GameState {
         return true;
     }
 
-    /* HIGH GROUND */
-
     // Take up to speed steps per tick. Each step re-picks the target and moves one cell
     private void moveTroop(Round round, Troop troop) {
         for (int step = 0; step < troop.getSpeed(); ++step) {
@@ -185,18 +207,6 @@ public class BattleState implements GameState {
                 return;
             }
         }
-    }
-
-    private Optional<TileEffect> hillWorthTaking(Round round, Troop troop, Positioned target) {
-        // priests gain nothing from height, and a troop already holding a
-        // hill should stay on it
-        if (!(troop instanceof Attacker) || round.damageBonusAt(troop) > 0) {
-            return Optional.empty();
-        }
-
-        int toTarget = distance(troop, target);
-
-        return round.effectsMatching(UNCLAIMED_HILL).stream().filter(hill -> distance(troop, hill) <= MAX_HILL_DETOUR).filter(hill -> distance(troop, hill) < toTarget).min(Comparator.comparingInt(hill -> distance(troop, hill)));
     }
 
     // high ground lets ranged troops shoot further, so range is read from the
@@ -254,6 +264,20 @@ public class BattleState implements GameState {
         return Math.abs(a.getRow() - b.getRow()) + Math.abs(a.getColumn() - b.getColumn());
     }
 
+    /* HIGH GROUND */
+    private Optional<TileEffect> hillWorthTaking(Round round, Troop troop, Positioned target) {
+        // priests gain nothing from height, and a troop already holding a
+        // hill should stay on it
+        if (!(troop instanceof Attacker) || round.damageBonusAt(troop) > 0) {
+            return Optional.empty();
+        }
+
+        int toTarget = distance(troop, target);
+
+        return round.effectsMatching(UNCLAIMED_HILL).stream().filter(hill -> distance(troop, hill) <= MAX_HILL_DETOUR).filter(hill -> distance(troop, hill) < toTarget).min(Comparator.comparingInt(hill -> distance(troop, hill)));
+    }
+
+    /* ROUND END LOGIC */
     private boolean endRoundIfOver(Round round) {
         boolean castleA = round.getTeamACastle().isDestroyed();
         boolean castleB = round.getTeamBCastle().isDestroyed();
@@ -267,7 +291,7 @@ public class BattleState implements GameState {
         }
         BattleSummary summary = BattleSummary.capture(round);
         if (defeatedA && defeatedB) {
-            round.setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW, "Both teams have lost their castle or their entire army.",summary));
+            round.setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW, "Both teams have lost their castle or their entire army.", summary));
             return true;
         }
 
@@ -284,32 +308,11 @@ public class BattleState implements GameState {
         }
 
         RoundOverState.Outcome outcome = defeatedA ? RoundOverState.Outcome.TEAM_B_WINS : RoundOverState.Outcome.TEAM_A_WINS;
-        round.setCurrentState(new RoundOverState(outcome, reason,summary));
+        round.setCurrentState(new RoundOverState(outcome, reason, summary));
         return true;
     }
 
     private boolean isArmyDefeated(Team team) {
         return team.getArmy().stream().allMatch(Troop::isDestroyed);
     }
-
-    /*  MOVEMENT LOGIC*/
-    // A simple helper to represent a coordinate in the grid for pathfinding
-    record PathNode(int row, int col) implements Positioned {
-        @Override
-        public boolean isAt(int row, int column) {
-            return this.row == row && this.col == column;
-        }
-
-        @Override
-        public int getRow() {
-            return row;
-        }
-
-        @Override
-        public int getColumn() {
-            return col;
-        }
-    }
-
-    /*  ----------- */
 }

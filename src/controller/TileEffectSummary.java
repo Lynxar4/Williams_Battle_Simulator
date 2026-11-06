@@ -14,12 +14,12 @@ public record TileEffectSummary(
         int coinsOnField,
         int trapsArmedA,
         int trapsArmedB) {
-
+    /* ---- FACTORY METHODS ---- */
     public static TileEffectSummary empty() {
         return new TileEffectSummary(0, 0, 0, 0, 0, 0, 0);
     }
 
-    /* ---- GETTER METHODS ---- */
+    /* ---- PUBLIC METHODS ---- */
     public int hillsHeldBy(Troop.Team team) {
         return team == Troop.Team.teamA ? hillsHeldA : hillsHeldB;
     }

@@ -4,7 +4,6 @@ import entity.Damageable;
 import entity.Positioned;
 
 public abstract class Troop implements Damageable {
-
     /* ---- ENUMS ---- */
     public enum Team {
         teamA,
@@ -45,6 +44,18 @@ public abstract class Troop implements Damageable {
         // Troop movement logic
     }
 
+    public void markHealed() {
+        lastHealedTime = System.currentTimeMillis();
+    }
+
+    public boolean wasRecentlyHealed() {
+        return System.currentTimeMillis() - lastHealedTime < HEAL_GLOW_DURATION;
+    }
+
+    /* ---- ABSTRACT METHODS ---- */
+    public abstract Positioned getTarget();
+
+    /* ---- OVERRIDES ---- */
     @Override
     public void takeDamage(int dmg) {
         // Damage is reduced in proportion to the troop's armour
@@ -68,15 +79,6 @@ public abstract class Troop implements Damageable {
         return this.row == row && this.column == column;
     }
 
-    public void markHealed() {
-        lastHealedTime = System.currentTimeMillis();
-    }
-
-    public boolean wasRecentlyHealed() {
-        return System.currentTimeMillis() - lastHealedTime < HEAL_GLOW_DURATION;
-    }
-
-    /* ---- GETTER METHODS ---- */
     @Override
     public int getRow() {
         return row;
@@ -87,6 +89,7 @@ public abstract class Troop implements Damageable {
         return column;
     }
 
+    /* ---- GETTER METHODS ---- */
     public int getGroupHealth() {
         return groupHealth;
     }
@@ -118,8 +121,6 @@ public abstract class Troop implements Damageable {
     public long getDeathTime() {
         return deathTime;
     }
-
-    public abstract Positioned getTarget();
 
     public int getGroupSize() {
         /*

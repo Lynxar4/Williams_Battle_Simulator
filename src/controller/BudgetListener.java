@@ -10,7 +10,6 @@ import entity.troops.Troop;
 // report zero, and the arithmetic is the same either way.
 
 public class BudgetListener implements TileEffectListener {
-
     /* ---- PRIVATE VARIABLES ---- */
     private final Team teamA;
     private final Team teamB;
@@ -21,7 +20,7 @@ public class BudgetListener implements TileEffectListener {
         this.teamB = teamB;
     }
 
-    /* ---- PUBLIC METHODS ---- */
+    /* ---- OVERRIDES ---- */
     @Override
     public void onTileEffectTriggered(TileEffectEvent event) {
         if (event.budgetChange() == 0) {

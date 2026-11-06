@@ -14,17 +14,17 @@ import java.util.Map;
 public class PlaceState implements GameState {
     /* ---- PRIVATE VARIABLES ---- */
     // Amount actually paid per group, so removing it refunds exactly once.
-    private final Map<Troop,Integer> purchaseCosts = new HashMap<>();
+    private final Map<Troop, Integer> purchaseCosts = new HashMap<>();
     private Troop movingTroop;
 
+    /* ---- OVERRIDES ---- */
     @Override
-    public void onEnter(Round round){
+    public void onEnter(Round round) {
         GameView view = round.getView();
         view.setPlacementEnabled(true);
         view.setPlacementRule((team, row, column) -> isValidTile(round, team, row, column));
         view.showMessage("Click an empty tile to buy a group. Right-click a group to move or remove it.", false);
         updateControls(round);
-
     }
 
     @Override
@@ -92,7 +92,8 @@ public class PlaceState implements GameState {
         round.setCurrentState(new BattleState());
     }
 
-    /* ---- PLACEMENT RULES ---- */
+    /* ---- PRIVATE METHODS ---- */
+    /* PLACEMENT RULES */
     private int buyTroop(Round round, Troop.Team owner, TroopType type, int groupSize, int row, int column)
             throws InvalidPlacementException {
         if (owner == null || type == null) {
@@ -170,7 +171,7 @@ public class PlaceState implements GameState {
                 .anyMatch(troop -> troop instanceof Attacker && !troop.isDestroyed());
     }
 
-    /* ---- HELPERS ---- */
+    /* HELPERS */
     private void clearMove(Round round) {
         movingTroop = null;
         round.getView().highlightMovingTroop(null);
@@ -182,5 +183,4 @@ public class PlaceState implements GameState {
         view.setStartBattleAllowed(canStartBattle(round));
         view.refreshBoard();
     }
-
 }

@@ -17,27 +17,7 @@ public abstract class TileEffect implements Positioned {
         this.owner = owner;
     }
 
-    /* ---- GETTER METHODS ---- */
-    @Override
-    public int getRow() {
-        return row;
-    }
-
-    @Override
-    public int getColumn() {
-        return column;
-    }
-
-    public Troop.Team getOwner() {
-        return owner;
-    }
-
     /* ---- PUBLIC METHODS ---- */
-    @Override
-    public boolean isAt(int row, int column) {
-        return this.row == row && this.column == column;
-    }
-
     // extra damage this effect gives a troop standing on it.
     // only hill overrides it, so combat never has to check what is underfoot.
     public int damageBonusFor(Troop troop) {
@@ -51,7 +31,6 @@ public abstract class TileEffect implements Positioned {
     }
 
     /* ---- ABSTRACT METHODS ---- */
-
     // called when a troop moves onto this cell.
     // returns an event if something happened, empty if nothing did: a coin
     // already taken, a hill already claimed, a troop on its own trap.
@@ -65,4 +44,24 @@ public abstract class TileEffect implements Positioned {
     // each subclass calls its own one, which is what replaces instanceof.
     public abstract <R> R accept(TileEffectVisitor<R> visitor);
 
+    /* ---- OVERRIDES ---- */
+    @Override
+    public int getRow() {
+        return row;
+    }
+
+    @Override
+    public int getColumn() {
+        return column;
+    }
+
+    @Override
+    public boolean isAt(int row, int column) {
+        return this.row == row && this.column == column;
+    }
+
+    /* ---- GETTER METHODS ---- */
+    public Troop.Team getOwner() {
+        return owner;
+    }
 }

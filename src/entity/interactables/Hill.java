@@ -8,7 +8,6 @@ import java.util.Optional;
 // ranged troops also shoot further from up here.
 
 public class Hill extends TileEffect {
-
     /* ---- STATIC VARIABLES ---- */
     private static final int DEFAULT_RANGE_BONUS = 1;
 
@@ -30,26 +29,12 @@ public class Hill extends TileEffect {
         holder = null;
     }
 
-    /* ---- GETTER METHODS ---- */
-    public int getDamageBonus() {
-        return damageBonus;
-    }
-
-    public int getRangeBonus() {
-        return rangeBonus;
-    }
-
-    public Troop.Team getHolder() {
-        return holder;
-    }
-
     /* ---- PUBLIC METHODS ---- */
     public boolean isClaimed() {
         return holder != null;
     }
 
     /* ---- OVERRIDES ---- */
-
     // only the holding team gets the bonus, and only while standing here.
     // read at the moment of the attack, so nothing is undone when it leaves.
     @Override
@@ -90,4 +75,16 @@ public class Hill extends TileEffect {
         return visitor.visitHill(this);
     }
 
+    /* ---- GETTER METHODS ---- */
+    public int getDamageBonus() {
+        return damageBonus;
+    }
+
+    public int getRangeBonus() {
+        return rangeBonus;
+    }
+
+    public Troop.Team getHolder() {
+        return holder;
+    }
 }

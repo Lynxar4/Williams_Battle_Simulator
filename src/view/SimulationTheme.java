@@ -5,6 +5,7 @@ import java.awt.Font;
 
 /* Shared colours and fonts for the battlefield and buying controls. */
 final class SimulationTheme {
+    /* ---- STATIC VARIABLES ---- */
     static final Color BACKGROUND = new Color(237, 241, 245);
     static final Color TEXT = new Color(38, 52, 68);
     static final Color MUTED = new Color(111, 124, 139);
@@ -15,5 +16,6 @@ final class SimulationTheme {
     static final Font BODY = new Font("SansSerif", Font.PLAIN, 13);
     static final Font LABEL = new Font("SansSerif", Font.BOLD, 11);
 
+    /* ---- CONSTRUCTORS ---- */
     private SimulationTheme() { }
 }

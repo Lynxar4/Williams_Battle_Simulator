@@ -12,16 +12,25 @@ public enum TroopType {
     CAVALRY("Cavalry", 25, Cavalry::new),
     PRIEST("Priest", 15, Priest::new);
 
+    /* ---- INTERFACES ---- */
+    @FunctionalInterface
+    private interface TroopFactory {
+        Troop create(int row, int column, int groupSize, Troop.Team team);
+    }
+
+    /* ---- PRIVATE VARIABLES ---- */
     private final String displayName;
     private final int price;
     private final TroopFactory factory;
 
+    /* ---- CONSTRUCTORS ---- */
     TroopType(String displayName, int price, TroopFactory factory) {
         this.displayName = displayName;
         this.price = price;
         this.factory = factory;
     }
 
+    /* ---- PUBLIC METHODS ---- */
     public int getTotalCost(int groupSize) {
         if (groupSize < 1) {
             throw new IllegalArgumentException("Group size must be a positive whole number.");
@@ -36,17 +45,14 @@ public enum TroopType {
         return factory.create(row, column, groupSize, team);
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
+    /* ---- OVERRIDES ---- */
     @Override
     public String toString() {
         return displayName + " ($" + price + " each)";
     }
 
-    @FunctionalInterface
-    private interface TroopFactory {
-        Troop create(int row, int column, int groupSize, Troop.Team team);
+    /* ---- GETTER METHODS ---- */
+    public String getDisplayName() {
+        return displayName;
     }
 }

@@ -53,6 +53,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 public class BattlefieldPanel extends JPanel implements Scrollable {
+    /* ---- STATIC VARIABLES ---- */
     private static final int PADDING = 8;
     private static final int SIDEBAR_GAP = 18;
     private static final int SIDEBAR_WIDTH = 148;
@@ -65,6 +66,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private static final Color HEAL_GLOW_INNER = new Color(255, 235, 70, 120);
     private static final Color HEAL_GLOW_CENTRE = new Color(255, 250, 150, 170);
 
+    /* ---- PRIVATE VARIABLES ---- */
     private final Image infantryASprite = sprite("Infantry_A");
     private final Image infantryBSprite = sprite("Infantry_B");
     private final Image archerASprite = sprite("Archer_A");
@@ -117,6 +119,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private JPanel battlefieldView;
     private final JLabel latestEvent = new JLabel(" ");
     private final Timer animationTimer;
+
     // recounted each repaint from the board, so it never goes stale
     private TileEffectSummary terrain = TileEffectSummary.empty();
     private ArmyHealthSummary teamAHealth = ArmyHealthSummary.empty();
@@ -128,7 +131,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     });
     private PlacementRule placementRule = (team, row, column) -> false;
 
-    /* ---- CONSTRUCTOR ---- */
+    /* ---- CONSTRUCTORS ---- */
     public BattlefieldPanel() {
         setBackground(SimulationTheme.BACKGROUND);
         setToolTipText("");
@@ -183,26 +186,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         });
     }
 
-
-    private void showTroopMenu(MouseEvent e) {
-        if (!e.isPopupTrigger() || !placementEnabled || !getGridBounds().contains(e.getPoint())) {
-            return;
-        }
-        int row = rowFor(e.getY());
-        int column = columnFor(e.getX());
-        allTroops().filter(troop -> !troop.isDestroyed() && troop.isAt(row, column)).findFirst().ifPresent(troop -> troopMenuHandler.accept(troop, e));
-    }
-
-    public void setTroopMenuHandler(BiConsumer<Troop, MouseEvent> handler) {
-        troopMenuHandler = handler;
-    }
-
-    public void setMovingTroop(Troop troop) {
-        movingTroop = troop;
-        setCursor(Cursor.getPredefinedCursor(troop == null ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR));
-        repaint();
-    }
-
+    /* ---- PUBLIC METHODS ---- */
     /* Keep team information fixed while the battlefield can scroll. */
     public JPanel createView() {
         battlefieldView = new JPanel(new BorderLayout(SIDEBAR_GAP, 0));
@@ -226,63 +210,41 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         return battlefieldView;
     }
 
-    private JPanel teamSummary(boolean isTeamA, String title, Color accent) {
-        JPanel card = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics graphics) {
-                super.paintComponent(graphics);
-                if (!hasBoard()) {
-                    return; // before the first showBoard there's nothing to draw
-                }
-                // read the fields NOW, so we always get the latest board
-                Team team = isTeamA ? teamA : teamB;
-                Castle castle = isTeamA ? castleA : castleB;
-
-                Graphics2D g = (Graphics2D) graphics.create();
-                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                terrain = tileEffects.stream().collect(new TileEffectSummaryCollector());
-                drawSidebar(g, 0, 0, getHeight() - 3, team, castle, title, accent);
-                g.dispose();
-            }
-        };
-
-        card.setOpaque(false);
-        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 563));
-        card.setToolTipText("<html>Health is remaining HP / starting HP, including defeated groups.<br>" + "Healthy: above 70%; wounded: 30-70%; critical: below 30%; defeated: 0 HP.<br>" + "Health categories count groups, not individual soldiers.</html>");
-
-        JPanel column = new JPanel(new BorderLayout());
-        column.setOpaque(false);
-        column.add(card, BorderLayout.NORTH);
-
-        return column;
-    }
-
-    public void setFitWholeBoard(boolean fit) {
-        fitWholeBoard = fit;
-        clearHover();
-        revalidate();
-        SwingUtilities.invokeLater(this::centreView);
-    }
-
-    private void centreView() {
-        if (getParent() instanceof JViewport viewport) {
-            viewport.setViewPosition(new Point(Math.max(0, (getWidth() - viewport.getWidth()) / 2), Math.max(0, (getHeight() - viewport.getHeight()) / 2)));
-        }
-    }
-
     public void refresh() {
         if (hasBoard()) healthMonitor.request(teamA, teamB);
         repaintView();
     }
 
-    private void repaintView() {
-        if (battlefieldView != null) {
-            battlefieldView.repaint();
-        } else {
-            repaint();
-        }
+    public Rectangle getTileBounds(int row, int column) {
+        Rectangle board = getGridBounds();
+        int width = cellWidth();
+        int height = cellHeight();
+
+        return new Rectangle(board.x + column * width, board.y + row * height, width, height);
     }
 
+    public void showBoard(int rows, int columns, Team teamA, Team teamB,
+                          Castle castleA, Castle castleB, List<TileEffect> tileEffects) {
+        this.rows = rows;
+        this.columns = columns;
+        this.teamA = teamA;
+        this.teamB = teamB;
+        this.castleA = castleA;
+        this.castleB = castleB;
+        this.tileEffects = tileEffects;
+        healthMonitor.reset();
+        teamAHealth = ArmyHealthSummary.empty();
+        teamBHealth = ArmyHealthSummary.empty();
+        revalidate();   // the preferred size depends on rows/columns
+        refresh();
+    }
+
+    public void showLatestEvent(String text) {
+        // a single space keeps the label's height, so the layout doesn't jump
+        latestEvent.setText(text == null || text.isEmpty() ? " " : text);
+    }
+
+    /* ---- OVERRIDES ---- */
     @Override
     public Dimension getPreferredSize() {
         return !hasBoard() ? new Dimension(800, 680) : new Dimension(columns * MIN_TILE_SIZE + 2 * PADDING, rows * MIN_TILE_SIZE + 2 * PADDING);
@@ -311,50 +273,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     @Override
     public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
         return orientation == SwingConstants.HORIZONTAL ? Math.max(cellWidth(), visible.width - cellWidth()) : Math.max(cellHeight(), visible.height - cellHeight());
-    }
-
-    /* Drawing and mouse input share these bounds, including after a resize. */
-    public Rectangle getGridBounds() {
-        if (!hasBoard()) {
-            return new Rectangle();
-        }
-
-        int availableWidth = Math.max(1, getWidth() - 2 * PADDING);
-        int availableHeight = Math.max(1, getHeight() - 2 * PADDING);
-
-        int width = Math.max(1, availableWidth / columns) * columns;
-
-        int height = Math.max(1, availableHeight / rows) * rows;
-
-        return new Rectangle((getWidth() - width) / 2, (getHeight() - height) / 2, width, height);
-    }
-
-    private int cellWidth() {
-        return getGridBounds().width / columns;
-    }
-
-    private int cellHeight() {
-        return getGridBounds().height / rows;
-    }
-
-    public Rectangle getTileBounds(int row, int column) {
-        Rectangle board = getGridBounds();
-        int width = cellWidth();
-        int height = cellHeight();
-
-        return new Rectangle(board.x + column * width, board.y + row * height, width, height);
-    }
-
-    private int columnFor(int mouseX) {
-        return Math.floorDiv(mouseX - getGridBounds().x, cellWidth());
-    }
-
-    private int rowFor(int mouseY) {
-        return Math.floorDiv(mouseY - getGridBounds().y, cellHeight());
-    }
-
-    private boolean isWithinGrid(int row, int column) {
-        return row >= 0 && row < rows && column >= 0 && column < columns;
     }
 
     @Override
@@ -397,6 +315,171 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         g.dispose();
     }
 
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        if (!hasBoard()) {
+            return null;
+        }
+
+        int row = rowFor(e.getY());
+
+        int column = columnFor(e.getX());
+
+        if (!isWithinGrid(row, column)) {
+            return null;
+        }
+
+        Troop troop = allTroops().filter(group -> group.isAt(row, column)).filter(group -> !group.isDestroyed() || !isDeathAnimationFinished(group)).findFirst().orElse(null);
+
+        if (troop != null) {
+            return troop.getClass().getSimpleName() + " | " + (troop.getTeam() == Troop.Team.teamA ? "Team A" : "Team B") + " | Soldiers: " + troop.getGroupSize() + " | HP: " + troop.getGroupHealth() + "/" + troop.getMaxHealth();
+        }
+
+        // nothing standing here, so report the tile effect if there is one
+        final int hoverRowFinal = row;
+        final int hoverColumnFinal = column;
+
+        TileEffect effect = tileEffects.stream().filter(tileEffect -> tileEffect.isAt(hoverRowFinal, hoverColumnFinal)).findFirst().orElse(null);
+
+        if (effect != null) {
+            return effect.accept(descriptionVisitor);
+        }
+
+        return "Row " + (row + 1) + ", column " + (column + 1);
+    }
+
+    /* ---- GETTER METHODS ---- */
+    /* Drawing and mouse input share these bounds, including after a resize. */
+    public Rectangle getGridBounds() {
+        if (!hasBoard()) {
+            return new Rectangle();
+        }
+
+        int availableWidth = Math.max(1, getWidth() - 2 * PADDING);
+        int availableHeight = Math.max(1, getHeight() - 2 * PADDING);
+
+        int width = Math.max(1, availableWidth / columns) * columns;
+
+        int height = Math.max(1, availableHeight / rows) * rows;
+
+        return new Rectangle((getWidth() - width) / 2, (getHeight() - height) / 2, width, height);
+    }
+
+    /* ---- SETTER METHODS ---- */
+    public void setTroopMenuHandler(BiConsumer<Troop, MouseEvent> handler) {
+        troopMenuHandler = handler;
+    }
+
+    public void setMovingTroop(Troop troop) {
+        movingTroop = troop;
+        setCursor(Cursor.getPredefinedCursor(troop == null ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR));
+        repaint();
+    }
+
+    public void setFitWholeBoard(boolean fit) {
+        fitWholeBoard = fit;
+        clearHover();
+        revalidate();
+        SwingUtilities.invokeLater(this::centreView);
+    }
+
+    public void setPlacementEnabled(boolean enabled) {
+        placementEnabled = enabled;
+        if (!enabled) {
+            clearHover();
+        }
+        repaint();
+    }
+
+    public void setPlacementHandler(BiConsumer<Integer, Integer> handler) {
+        this.placementHandler = handler;
+    }
+
+    public void setPlacementTeam(Troop.Team team) {
+        this.placementTeam = team;
+        repaint();
+    }
+
+    public void setPlacementRule(PlacementRule rule) {
+        placementRule = rule;
+        repaint(); // redraw the hover with the new rule
+    }
+
+    /* ---- PRIVATE METHODS ---- */
+    private void showTroopMenu(MouseEvent e) {
+        if (!e.isPopupTrigger() || !placementEnabled || !getGridBounds().contains(e.getPoint())) {
+            return;
+        }
+        int row = rowFor(e.getY());
+        int column = columnFor(e.getX());
+        allTroops().filter(troop -> !troop.isDestroyed() && troop.isAt(row, column)).findFirst().ifPresent(troop -> troopMenuHandler.accept(troop, e));
+    }
+
+    private JPanel teamSummary(boolean isTeamA, String title, Color accent) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                super.paintComponent(graphics);
+                if (!hasBoard()) {
+                    return; // before the first showBoard there's nothing to draw
+                }
+                // read the fields NOW, so we always get the latest board
+                Team team = isTeamA ? teamA : teamB;
+                Castle castle = isTeamA ? castleA : castleB;
+
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                terrain = tileEffects.stream().collect(new TileEffectSummaryCollector());
+                drawSidebar(g, 0, 0, getHeight() - 3, team, castle, title, accent);
+                g.dispose();
+            }
+        };
+
+        card.setOpaque(false);
+        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 563));
+        card.setToolTipText("<html>Health is remaining HP / starting HP, including defeated groups.<br>" + "Healthy: above 70%; wounded: 30-70%; critical: below 30%; defeated: 0 HP.<br>" + "Health categories count groups, not individual soldiers.</html>");
+
+        JPanel column = new JPanel(new BorderLayout());
+        column.setOpaque(false);
+        column.add(card, BorderLayout.NORTH);
+
+        return column;
+    }
+
+    private void centreView() {
+        if (getParent() instanceof JViewport viewport) {
+            viewport.setViewPosition(new Point(Math.max(0, (getWidth() - viewport.getWidth()) / 2), Math.max(0, (getHeight() - viewport.getHeight()) / 2)));
+        }
+    }
+
+    private void repaintView() {
+        if (battlefieldView != null) {
+            battlefieldView.repaint();
+        } else {
+            repaint();
+        }
+    }
+
+    private int cellWidth() {
+        return getGridBounds().width / columns;
+    }
+
+    private int cellHeight() {
+        return getGridBounds().height / rows;
+    }
+
+    private int columnFor(int mouseX) {
+        return Math.floorDiv(mouseX - getGridBounds().x, cellWidth());
+    }
+
+    private int rowFor(int mouseY) {
+        return Math.floorDiv(mouseY - getGridBounds().y, cellHeight());
+    }
+
+    private boolean isWithinGrid(int row, int column) {
+        return row >= 0 && row < rows && column >= 0 && column < columns;
+    }
+
     private void drawGrid(Graphics2D g, Rectangle board) {
         int width = cellWidth();
         int height = cellHeight();
@@ -428,7 +511,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
         g.setColor(new Color(148, 160, 137));
 
-        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{6f, 5f}, 0f));
+        g.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[] {6f, 5f}, 0f));
 
         int middle = board.x + board.width / 2;
         g.drawLine(middle, board.y, middle, board.y + board.height);
@@ -452,7 +535,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawTileEffect(Graphics2D g, Rectangle board, TileEffect effect) {
-
         // the effect picks its own sprite through the visitor, so no type
         // checks here
         Image image = effect.accept(spriteVisitor);
@@ -463,7 +545,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawSprite(Graphics2D g, Rectangle board, int row, int column, Image image) {
-
         Rectangle tile = getTileBounds(row, column);
         int inset = Math.max(1, Math.min(tile.width, tile.height) / 15);
 
@@ -471,7 +552,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawImageFitted(Graphics2D g, Image image, int centreX, int bottomY, int maxWidth, int maxHeight) {
-
         double scale = Math.min((double) maxWidth / image.getWidth(this), (double) maxHeight / image.getHeight(this));
 
         int width = Math.max(1, (int) Math.round(image.getWidth(this) * scale));
@@ -482,7 +562,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawCastle(Graphics2D g, Rectangle board, Castle castle, Color accent) {
-
         Rectangle firstTile = getTileBounds(castle.getRow(), castle.getColumn());
 
         Rectangle lastTile = getTileBounds(castle.getRow() + castle.getSize() - 1, castle.getColumn() + castle.getSize() - 1);
@@ -513,7 +592,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawTroop(Graphics2D g, Rectangle board, Troop troop) {
-
         boolean dead = troop.isDestroyed();
 
         if (dead && isDeathAnimationFinished(troop)) {
@@ -552,7 +630,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         troopGraphics.setFont(new Font("SansSerif", Font.BOLD, fontSize));
 
         while (troopGraphics.getFontMetrics().stringWidth(label) > tile.width - 4 && fontSize > 6) {
-
             troopGraphics.setFont(new Font("SansSerif", Font.BOLD, --fontSize));
         }
 
@@ -580,7 +657,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         drawImageFitted(troopGraphics, troopSprite, figureLeft + figureWidth / 2, tile.y + tile.height - inset, Math.max(1, figureWidth), Math.max(1, tile.height - 2 * inset));
 
         if (!dead && troop instanceof Healer healer && healer.hasRecentlyHealed()) {
-
             drawBookGlow(troopGraphics, troop, tile, figureLeft, figureWidth);
         }
 
@@ -660,7 +736,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawHealGlow(Graphics2D g, Rectangle tile) {
-
         g.setColor(HEAL_GLOW_OUTER);
 
         g.fillOval(tile.x + 1, tile.y + 1, Math.max(1, tile.width - 2), Math.max(1, tile.height - 2));
@@ -675,7 +750,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawBookGlow(Graphics2D g, Troop troop, Rectangle tile, int figureLeft, int figureWidth) {
-
         int size = Math.max(6, Math.min(tile.width, tile.height) / 2);
 
         int centreX = figureLeft + (troop.getTeam() == Troop.Team.teamA ? figureWidth * 3 / 4 : figureWidth / 4);
@@ -702,7 +776,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawSidebar(Graphics2D g, int x, int y, int availableHeight, Team team, Castle castle, String title, Color accent) {
-
         int width = SIDEBAR_WIDTH;
         int height = Math.min(availableHeight, 560);
 
@@ -788,7 +861,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void sidebarStat(Graphics2D g, String label, String value, int x, int baseline, int width) {
-
         g.setFont(SimulationTheme.BODY);
         g.setColor(SimulationTheme.MUTED);
 
@@ -802,43 +874,9 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void centred(Graphics2D g, String text, int x, int width, int baseline) {
-
         FontMetrics metrics = g.getFontMetrics();
 
         g.drawString(text, x + (width - metrics.stringWidth(text)) / 2, baseline);
-    }
-
-    @Override
-    public String getToolTipText(MouseEvent e) {
-        if (!hasBoard()) {
-            return null;
-        }
-
-        int row = rowFor(e.getY());
-
-        int column = columnFor(e.getX());
-
-        if (!isWithinGrid(row, column)) {
-            return null;
-        }
-
-        Troop troop = allTroops().filter(group -> group.isAt(row, column)).filter(group -> !group.isDestroyed() || !isDeathAnimationFinished(group)).findFirst().orElse(null);
-
-        if (troop != null) {
-            return troop.getClass().getSimpleName() + " | " + (troop.getTeam() == Troop.Team.teamA ? "Team A" : "Team B") + " | Soldiers: " + troop.getGroupSize() + " | HP: " + troop.getGroupHealth() + "/" + troop.getMaxHealth();
-        }
-
-        // nothing standing here, so report the tile effect if there is one
-        final int hoverRowFinal = row;
-        final int hoverColumnFinal = column;
-
-        TileEffect effect = tileEffects.stream().filter(tileEffect -> tileEffect.isAt(hoverRowFinal, hoverColumnFinal)).findFirst().orElse(null);
-
-        if (effect != null) {
-            return effect.accept(descriptionVisitor);
-        }
-
-        return "Row " + (row + 1) + ", column " + (column + 1);
     }
 
     private Image sprite(String name) {
@@ -869,7 +907,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
             }
 
             return right < left ? image : image.getSubimage(left, top, right - left + 1, bottom - top + 1);
-
         } catch (IOException e) {
             throw new IllegalStateException("Cannot load sprite: " + file + ". Run from the project root.", e);
         }
@@ -878,44 +915,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private void clearHover() {
         hoverRow = -1;
         hoverColumn = -1;
-        repaint();
-    }
-    public void showBoard(int rows, int columns, Team teamA, Team teamB,
-                          Castle castleA, Castle castleB, List<TileEffect> tileEffects) {
-        this.rows = rows;
-        this.columns = columns;
-        this.teamA = teamA;
-        this.teamB = teamB;
-        this.castleA = castleA;
-        this.castleB = castleB;
-        this.tileEffects = tileEffects;
-        healthMonitor.reset();
-        teamAHealth = ArmyHealthSummary.empty();
-        teamBHealth = ArmyHealthSummary.empty();
-        revalidate();   // the preferred size depends on rows/columns
-        refresh();
-    }
-
-    public void setPlacementEnabled(boolean enabled) {
-        placementEnabled = enabled;
-        if (!enabled) {
-            clearHover();
-        }
-        repaint();
-    }
-
-    public void showLatestEvent(String text) {
-        // a single space keeps the label's height, so the layout doesn't jump
-        latestEvent.setText(text == null || text.isEmpty() ? " " : text);
-    }
-
-    public void setPlacementHandler(BiConsumer<Integer, Integer> handler) {
-
-        this.placementHandler = handler;
-    }
-
-    public void setPlacementTeam(Troop.Team team) {
-        this.placementTeam = team;
         repaint();
     }
 
@@ -927,10 +926,5 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     // Every troop on the board, both teams.
     private Stream<Troop> allTroops() {
         return Stream.concat(teamA.getArmy().stream(), teamB.getArmy().stream());
-    }
-
-    public void setPlacementRule(PlacementRule rule) {
-        placementRule = rule;
-        repaint(); // redraw the hover with the new rule
     }
 }

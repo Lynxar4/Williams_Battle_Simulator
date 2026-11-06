@@ -3,10 +3,12 @@ package view;
 /* Immutable results can safely pass from the background worker to Swing. */
 public record ArmyHealthSummary(int healthy, int wounded, int critical, int dead,
                                 long totalHealth, long maxHealth, int soldiers) {
+    /* ---- FACTORY METHODS ---- */
     public static ArmyHealthSummary empty() {
         return new ArmyHealthSummary(0, 0, 0, 0, 0, 0, 0);
     }
 
+    /* ---- PUBLIC METHODS ---- */
     public int livingGroups() {
         return healthy + wounded + critical;
     }

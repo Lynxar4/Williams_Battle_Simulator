@@ -12,7 +12,6 @@ import entity.troops.Troop;
 // knows who holds it, a trap knows whether it has gone off.
 
 class TileEffectDescriptionVisitor implements TileEffectVisitor<String> {
-
     /* ---- OVERRIDES ---- */
     @Override
     public String visitHill(Hill hill) {

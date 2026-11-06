@@ -15,7 +15,7 @@ public class Session {
     private final Round round;
     private final Timer timer;
 
-    /* ---- CONSTRUCTOR ---- */
+    /* ---- CONSTRUCTORS ---- */
     public Session(GameView view) {
         // Teams are created ONCE, so budgets carry over between rounds.
         Team teamA = new Team("teamA");

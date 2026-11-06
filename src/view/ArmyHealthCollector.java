@@ -10,34 +10,7 @@ import java.util.stream.Collector;
 /* Each stream partition gets its own accumulator; no shared counters or locks. */
 public class ArmyHealthCollector
         implements Collector<GroupHealthSnapshot, ArmyHealthCollector.Accumulator, ArmyHealthSummary> {
-
-    @Override
-    public Supplier<Accumulator> supplier() {
-        return Accumulator::new;
-    }
-
-    @Override
-    public BiConsumer<Accumulator, GroupHealthSnapshot> accumulator() {
-        return Accumulator::add;
-    }
-
-    @Override
-    public BinaryOperator<Accumulator> combiner() {
-        return Accumulator::combine;
-    }
-
-    @Override
-    public Function<Accumulator, ArmyHealthSummary> finisher() {
-        return Accumulator::finish;
-    }
-
-    @Override
-    public Set<Characteristics> characteristics() {
-        // Order cannot change integer sums/counts. Accumulators are NOT concurrent,
-        // and the finisher creates a different, immutable result type.
-        return Set.of(Characteristics.UNORDERED);
-    }
-
+    /* ---- NESTED CLASSES ---- */
     public static final class Accumulator {
         private int healthy, wounded, critical, dead, soldiers;
         private long totalHealth, maxHealth;
@@ -71,5 +44,33 @@ public class ArmyHealthCollector
         private ArmyHealthSummary finish() {
             return new ArmyHealthSummary(healthy, wounded, critical, dead, totalHealth, maxHealth, soldiers);
         }
+    }
+
+    /* ---- OVERRIDES ---- */
+    @Override
+    public Supplier<Accumulator> supplier() {
+        return Accumulator::new;
+    }
+
+    @Override
+    public BiConsumer<Accumulator, GroupHealthSnapshot> accumulator() {
+        return Accumulator::add;
+    }
+
+    @Override
+    public BinaryOperator<Accumulator> combiner() {
+        return Accumulator::combine;
+    }
+
+    @Override
+    public Function<Accumulator, ArmyHealthSummary> finisher() {
+        return Accumulator::finish;
+    }
+
+    @Override
+    public Set<Characteristics> characteristics() {
+        // Order cannot change integer sums/counts. Accumulators are NOT concurrent,
+        // and the finisher creates a different, immutable result type.
+        return Set.of(Characteristics.UNORDERED);
     }
 }

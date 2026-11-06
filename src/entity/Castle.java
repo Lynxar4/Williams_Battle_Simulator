@@ -1,12 +1,14 @@
 package entity;
 
 public class Castle implements Damageable {
+    /* ---- PRIVATE VARIABLES ---- */
     private final int BASE_HEALTH = 1000;
     private int row;
     private int column;
     private int health;
     private int size;
 
+    /* ---- CONSTRUCTORS ---- */
     public Castle(int row, int column, int health) {
         this(row, column, health, 1);
     }
@@ -18,6 +20,20 @@ public class Castle implements Damageable {
         this.size = size;
     }
 
+    /* ---- PUBLIC METHODS ---- */
+    public void resetHealth() {
+        health = BASE_HEALTH;
+    }
+
+    public void takeDamage(int dmg) {
+        health -= dmg;
+    }
+
+    public boolean isDestroyed() {
+        return health <= 0;
+    }
+
+    /* ---- OVERRIDES ---- */
     @Override
     public boolean isAt(int row, int column) {
         return row >= this.row
@@ -36,10 +52,7 @@ public class Castle implements Damageable {
         return column;
     }
 
-    public void resetHealth() {
-        health = BASE_HEALTH;
-    }
-
+    /* ---- GETTER METHODS ---- */
     public int getHealth() {
         return health;
     }
@@ -47,13 +60,4 @@ public class Castle implements Damageable {
     public int getSize() {
         return size;
     }
-
-    public void takeDamage(int dmg) {
-        health -= dmg;
-    }
-
-    public boolean isDestroyed() {
-        return health <= 0;
-    }
-
 }

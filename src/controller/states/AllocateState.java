@@ -3,7 +3,10 @@ package controller.states;
 import controller.Round;
 
 public class AllocateState implements GameState {
+    /* ---- PRIVATE VARIABLES ---- */
     private final int INITIAL_BUDGET = 500;
+
+    /* ---- OVERRIDES ---- */
     @Override
     public void onEnter(Round round) {
         round.resetCastles();
@@ -16,7 +19,9 @@ public class AllocateState implements GameState {
 
         round.setCurrentState(new PlaceState());
     }
-    private void allocateInitialBudget(Round round){
+
+    /* ---- PRIVATE METHODS ---- */
+    private void allocateInitialBudget(Round round) {
         round.getTeamA().addBudget(INITIAL_BUDGET);
         round.getTeamB().addBudget(INITIAL_BUDGET);
     }

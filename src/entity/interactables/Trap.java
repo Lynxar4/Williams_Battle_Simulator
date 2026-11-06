@@ -8,7 +8,6 @@ import java.util.Optional;
 // placement stage can create them the same way later.
 
 public class Trap extends TileEffect {
-
     /* ---- PRIVATE VARIABLES ---- */
     private final int damage;
     private boolean isTriggered;
@@ -20,11 +19,7 @@ public class Trap extends TileEffect {
         isTriggered = false;
     }
 
-    /* ---- GETTER METHODS ---- */
-    public int getDamage() {
-        return damage;
-    }
-
+    /* ---- PUBLIC METHODS ---- */
     public boolean isTriggered() {
         return isTriggered;
     }
@@ -58,4 +53,8 @@ public class Trap extends TileEffect {
         return visitor.visitTrap(this);
     }
 
+    /* ---- GETTER METHODS ---- */
+    public int getDamage() {
+        return damage;
+    }
 }

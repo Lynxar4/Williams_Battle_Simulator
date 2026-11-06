@@ -12,4 +12,3 @@ public interface PlayerActions {
     void startBattleRequested();
     void nextRoundRequested();
 }
-

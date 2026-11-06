@@ -13,7 +13,6 @@ import java.awt.Image;
 // then forces.
 
 class TileEffectSpriteVisitor implements TileEffectVisitor<Image> {
-
     /* ---- PRIVATE VARIABLES ---- */
     private final Image hillSprite;
     private final Image coinSprite;

@@ -16,7 +16,7 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-//Implementation of the GameView API. Acts as a single entity that the states talk to and delegate work to other panels
+// Implementation of the GameView API. Acts as a single entity that the states talk to and delegate work to other panels
 public class SwingGameView implements GameView {
     /* ---- STATIC VARIABLES ---- */
     private static final int WINDOW_WIDTH = 1180;
@@ -29,21 +29,15 @@ public class SwingGameView implements GameView {
     private final RoundOverPanel roundOverPanel;
     private PlayerActions actions; // set after Round is created
 
-    /* ---- CONSTRUCTOR ---- */
+    /* ---- CONSTRUCTORS ---- */
     public SwingGameView() {
         // reads 'actions' when clicked, not now (it's still null here)
         roundOverPanel = new RoundOverPanel(() -> actions.nextRoundRequested());
         setUpWindow();
     }
 
-    /* ---- PUBLIC METHODS ---- */
-
-    public void setPlayerActions(PlayerActions actions) {
-        this.actions = actions;
-        purchasePanel.setPlayerActions(actions);
-    }
-
-    /* ---- BOARD ---- */
+    /* ---- OVERRIDES ---- */
+    /* BOARD */
     @Override
     public void showBoard(int rows, int columns, Team teamA, Team teamB,
                           Castle castleA, Castle castleB, List<TileEffect> tileEffects) {
@@ -55,7 +49,7 @@ public class SwingGameView implements GameView {
         battlefield.refresh();
     }
 
-    /* ---- PLACEMENT ---- */
+    /* PLACEMENT */
     @Override
     public void setPlacementEnabled(boolean isEnabled) {
         purchasePanel.setPlacementEnabled(isEnabled);  // buying controls
@@ -82,7 +76,7 @@ public class SwingGameView implements GameView {
         battlefield.setMovingTroop(troop);
     }
 
-    /* ---- MESSAGES ---- */
+    /* MESSAGES */
     @Override
     public void showMessage(String text, boolean isError) {
         purchasePanel.showMessage(text, isError);
@@ -93,7 +87,7 @@ public class SwingGameView implements GameView {
         battlefield.showLatestEvent(text);
     }
 
-    /* ---- ROUND OVER ---- */
+    /* ROUND OVER */
     @Override
     public void showRoundResult(String title, String reason, BattleSummary summary) {
         roundOverPanel.showResult(title, reason, summary);
@@ -107,6 +101,12 @@ public class SwingGameView implements GameView {
     public void hideRoundResult() {
         roundOverPanel.setVisible(false);
         frame.getRootPane().setDefaultButton(null);
+    }
+
+    /* ---- SETTER METHODS ---- */
+    public void setPlayerActions(PlayerActions actions) {
+        this.actions = actions;
+        purchasePanel.setPlayerActions(actions);
     }
 
     /* ---- PRIVATE METHODS ---- */

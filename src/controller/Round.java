@@ -20,10 +20,8 @@ What Round is now responsible for?
 - Knowing which state is active and passing itself to it
 - Not deciding what happens in each phase — that's the states
 */
-public class Round implements PlayerActions{
-
+public class Round implements PlayerActions {
     /* ---- STATIC VARIABLES ---- */
-
     /* VARIABLES FOR GRID */
     private static final int ROW_COUNT = 30;
     private static final int COLUMN_COUNT = 30;
@@ -36,6 +34,7 @@ public class Round implements PlayerActions{
     private static final int COIN_VALUE = 25;
     private static final int TRAP_COUNT = 4;
     private static final int TRAP_DAMAGE = 20;
+
     // stops spawning spinning forever if there is nowhere left to put things
     private static final int MAX_SPAWN_ATTEMPTS = 500;
 
@@ -84,7 +83,6 @@ public class Round implements PlayerActions{
         currentState.render(this);
     }
 
-
     /*
      * Spawn all the tile effect that have been created
      */
@@ -103,11 +101,6 @@ public class Round implements PlayerActions{
         // its own strategy and its own share
         spawnTrapsFor(Troop.Team.teamA);
         spawnTrapsFor(Troop.Team.teamB);
-    }
-
-    private void spawnTrapsFor(Troop.Team owner) {
-        spawn(TRAP_COUNT / 2, SpawnStrategy.ownHalf(owner).awayFromEdges(CASTLE_SIZE),
-                cell -> new Trap(cell.row(), cell.column(), TRAP_DAMAGE, owner));
     }
 
     public void addTileEffectListener(TileEffectListener listener) {
@@ -157,7 +150,37 @@ public class Round implements PlayerActions{
         return !castleBoard.isWithinBounds(row, column) || !castleBoard.isCellFree(row, column) || isTroopAt(row, column);
     }
 
-    /* ---- PLAYER ACTIONS IMPLEMENTATION ---- */
+    public boolean isWithinBoard(int row, int column) {
+        return castleBoard.isWithinBounds(row, column);// just reusing the isWithinBounds method, nth related to castle
+    }
+
+    public Team getTeam(Troop.Team owner) {
+        return owner == Troop.Team.teamA ? teamA : teamB;
+    }
+
+    public void resetCastles() {
+        teamACastle.resetHealth();
+        teamBCastle.resetHealth();
+    }
+
+    public Troop.Team ownerOfHalf(int column) {
+        return (column < COLUMN_COUNT / 2) ? Troop.Team.teamA : Troop.Team.teamB;
+    }
+
+    public Team getEnemyTeam(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamB : teamA;
+    }
+
+    public Team getOwnTeam(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamA : teamB;
+    }
+
+    public Castle getEnemyCastle(Troop troop) {
+        return troop.getTeam() == Troop.Team.teamA ? teamBCastle : teamACastle;
+    }
+
+    /* ---- OVERRIDES ---- */
+    /* PLAYER ACTIONS IMPLEMENTATION */
     @Override
     public void tileClicked(Troop.Team team, TroopType type, int groupSize, int row, int column) {
         currentState.onTileClicked(this, team, type, groupSize, row, column);
@@ -187,20 +210,55 @@ public class Round implements PlayerActions{
     public void nextRoundRequested() {
         currentState.onNextRoundRequested(this);
     }
-    /* -------- */
-    public boolean isWithinBoard(int row, int column) {
-        return castleBoard.isWithinBounds(row, column);// just reusing the isWithinBounds method, nth related to castle
+
+    /* ---- GETTER METHODS ---- */
+    public Team getTeamA() {
+        return teamA;
     }
 
-    public Team getTeam(Troop.Team owner) {
-        return owner == Troop.Team.teamA ? teamA : teamB;
+    public Team getTeamB() {
+        return teamB;
     }
 
-    public void resetCastles() {
-        teamACastle.resetHealth();
-        teamBCastle.resetHealth();
+    public Castle getTeamACastle() {
+        return teamACastle;
     }
-    /*---- PRIVATE METHODS ---- */
+
+    public Castle getTeamBCastle() {
+        return teamBCastle;
+    }
+
+    public List<TileEffect> getTileEffects() {
+        return tileEffectBoard.getContents();
+    }
+
+    public GameState getCurrentState() {
+        return currentState;
+    }
+
+    public int getRowCount() {
+        return ROW_COUNT;
+    }
+
+    public int getColumnCount() {
+        return COLUMN_COUNT;
+    }
+
+    public GameView getView() {
+        return view;
+    }
+
+    /* ---- SETTER METHODS ---- */
+    public void setCurrentState(GameState state) {
+        this.currentState = state;
+        state.onEnter(this);
+    }
+
+    /* ---- PRIVATE METHODS ---- */
+    private void spawnTrapsFor(Troop.Team owner) {
+        spawn(TRAP_COUNT / 2, SpawnStrategy.ownHalf(owner).awayFromEdges(CASTLE_SIZE),
+                cell -> new Trap(cell.row(), cell.column(), TRAP_DAMAGE, owner));
+    }
 
     // the notify step. every listener gets the same event.
     private void fireTileEffectTriggered(TileEffectEvent event) {
@@ -267,64 +325,4 @@ public class Round implements PlayerActions{
 
         tileEffectBoard.place(effect);
     }
-
-    public Troop.Team ownerOfHalf(int column) {
-        return (column < COLUMN_COUNT / 2) ? Troop.Team.teamA : Troop.Team.teamB;
-    }
-
-    /* ---- GETTER METHODS ---- */
-    public Team getTeamA() {
-        return teamA;
-    }
-
-    public Team getTeamB() {
-        return teamB;
-    }
-
-    public Castle getTeamACastle() {
-        return teamACastle;
-    }
-
-    public Castle getTeamBCastle() {
-        return teamBCastle;
-    }
-
-    public List<TileEffect> getTileEffects() {
-        return tileEffectBoard.getContents();
-    }
-
-    public GameState getCurrentState() {
-        return currentState;
-    }
-
-    public int getRowCount() {
-        return ROW_COUNT;
-    }
-
-    public int getColumnCount() {
-        return COLUMN_COUNT;
-    }
-
-    public Team getEnemyTeam(Troop troop) {
-        return troop.getTeam() == Troop.Team.teamA ? teamB : teamA;
-    }
-
-    public Team getOwnTeam(Troop troop) {
-        return troop.getTeam() == Troop.Team.teamA ? teamA : teamB;
-    }
-
-    public Castle getEnemyCastle(Troop troop) {
-        return troop.getTeam() == Troop.Team.teamA ? teamBCastle : teamACastle;
-    }
-
-    public GameView getView() {
-        return view;
-    }
-
-    /* ---- SETTER METHODS ---- */
-    public void setCurrentState(GameState state) {
-        this.currentState = state;
-        state.onEnter(this);
-    }
-
 }
