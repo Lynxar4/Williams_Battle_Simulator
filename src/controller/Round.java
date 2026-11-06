@@ -156,6 +156,14 @@ public class Round {
         return tileEffectBoard.matching(test);
     }
 
+    // counts what is still on the board in one pass.
+    // sequential on purpose: there are fourteen effects, and the benchmark in
+    // tests shows the split costs more than it saves until there are tens of
+    // thousands. the collector itself is parallel safe either way.
+    public TileEffectSummary tileEffectSummary() {
+        return getTileEffects().stream().collect(new TileEffectSummaryCollector());
+    }
+
     public boolean isPlacingTroops() {
         return currentState instanceof PlaceState;
     }
@@ -266,9 +274,10 @@ public class Round {
             return false;
         }
 
+        BattleSummary summary = BattleSummary.capture(this);
         if (defeatedA && defeatedB) {
             setCurrentState(new RoundOverState(RoundOverState.Outcome.DRAW,
-                    "Both teams have lost their castle or their entire army."));
+                    "Both teams have lost their castle or their entire army.", summary));
         } else {
             String team = defeatedA ? "Team A" : "Team B";
             boolean castle = defeatedA ? castleA : castleB;
@@ -276,7 +285,7 @@ public class Round {
             String reason = castle && army ? team + " lost its castle and its entire army."
                     : castle ? team + "'s castle was destroyed." : team + "'s entire army was defeated.";
             setCurrentState(new RoundOverState(defeatedA ? RoundOverState.Outcome.TEAM_B_WINS
-                    : RoundOverState.Outcome.TEAM_A_WINS, reason));
+                    : RoundOverState.Outcome.TEAM_A_WINS, reason, summary));
         }
         return true;
     }

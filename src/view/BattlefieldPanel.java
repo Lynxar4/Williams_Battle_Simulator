@@ -2,6 +2,7 @@ package view;
 
 import controller.EventLogListener;
 import controller.Round;
+import controller.TileEffectSummary;
 import entity.Castle;
 import entity.Team;
 import entity.interactables.TileEffect;
@@ -107,6 +108,8 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private EventLogListener eventLog;
     private final JLabel latestEvent = new JLabel(" ");
     private final Timer animationTimer;
+    // recounted each repaint from the board, so it never goes stale
+    private TileEffectSummary terrain = TileEffectSummary.empty();
     private ArmyHealthSummary teamAHealth = ArmyHealthSummary.empty();
     private ArmyHealthSummary teamBHealth = ArmyHealthSummary.empty();
     private final ArmyHealthMonitor healthMonitor = new ArmyHealthMonitor(summaries -> {
@@ -223,13 +226,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
                 super.paintComponent(graphics);
                 Graphics2D g = (Graphics2D) graphics.create();
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                terrain = round.tileEffectSummary();
                 drawSidebar(g, 0, 0, getHeight() - 3, team, castle, title, accent);
                 g.dispose();
             }
         };
 
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 443));
+        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 563));
         card.setToolTipText("<html>Health is remaining HP / starting HP, including defeated groups.<br>"
                 + "Healthy: above 70%; wounded: 30-70%; critical: below 30%; defeated: 0 HP.<br>"
                 + "Health categories count groups, not individual soldiers.</html>");
@@ -1034,7 +1038,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         int height =
                 Math.min(
                         availableHeight,
-                        440);
+                        560);
 
         g.setColor(
                 new Color(
@@ -1170,6 +1174,28 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
             g.setColor(SimulationTheme.MUTED);
             centred(g, "Counts are groups", x, width, y + 425);
         }
+
+        if (height >= 545) {
+            drawTerrain(g, x, y, width, team, accent);
+        }
+    }
+
+    // what the tile effect census found. hills and traps are this team's;
+    // the gold line is the same on both sides because it is still unclaimed.
+    private void drawTerrain(Graphics2D g, int x, int y, int width, Team team, Color accent) {
+        Troop.Team side = team == round.getTeamA() ? Troop.Team.teamA : Troop.Team.teamB;
+
+        g.setColor(SimulationTheme.BORDER);
+        g.drawLine(x + 16, y + 445, x + width - 16, y + 445);
+
+        g.setFont(SimulationTheme.LABEL);
+        g.setColor(accent);
+        centred(g, "TERRAIN", x, width, y + 471);
+
+        sidebarStat(g, "Hills held", terrain.hillsHeldBy(side) + " / " + terrain.hillsTotal(),
+                x, y + 496, width);
+        sidebarStat(g, "Traps live", Integer.toString(terrain.trapsArmedBy(side)), x, y + 521, width);
+        sidebarStat(g, "Gold on field", "$" + terrain.goldOnField(), x, y + 546, width);
     }
 
     private void sidebarStat(
