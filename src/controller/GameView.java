@@ -1,11 +1,10 @@
-package view;
+package controller;
 
 import entity.Castle;
 import entity.Team;
 import entity.interactables.TileEffect;
 import entity.troops.Troop;
 import java.util.List;
-import java.util.function.BiPredicate;
 
 
 /*

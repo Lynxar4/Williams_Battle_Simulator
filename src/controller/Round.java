@@ -5,7 +5,7 @@ import entity.*;
 import entity.interactables.*;
 import entity.troops.Troop;
 import entity.troops.TroopType;
-import view.GameView;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -16,7 +16,7 @@ What Round is now responsible for?
 - Knowing which state is active and passing itself to it
 - Not deciding what happens in each phase — that's the states
 */
-public class Round {
+public class Round implements PlayerActions{
 
     /* ---- STATIC VARIABLES ---- */
 
@@ -121,30 +121,37 @@ public class Round {
         return !castleBoard.isWithinBounds(row, column) || !castleBoard.isCellFree(row, column) || isTroopAt(row, column);
     }
 
+    /* ---- PLAYER ACTIONS IMPLEMENTATION ---- */
+    @Override
     public void tileClicked(Troop.Team team, TroopType type, int groupSize, int row, int column) {
         currentState.onTileClicked(this, team, type, groupSize, row, column);
     }
 
+    @Override
     public void moveTroopRequested(Troop troop) {
         currentState.onMoveTroopRequested(this, troop);
     }
 
+    @Override
     public void cancelMove() {
         currentState.onCancelMove(this);
     }
 
+    @Override
     public void removeTroopRequested(Troop troop) {
         currentState.onRemoveTroopRequested(this, troop);
     }
 
+    @Override
     public void startBattleRequested() {
         currentState.onStartBattleRequested(this);
     }
 
+    @Override
     public void nextRoundRequested() {
         currentState.onNextRoundRequested(this);
     }
-
+    /* -------- */
     public boolean isWithinBoard(int row, int column) {
         return castleBoard.isWithinBounds(row, column);// just reusing the isWithinBounds method, nth related to castle
     }

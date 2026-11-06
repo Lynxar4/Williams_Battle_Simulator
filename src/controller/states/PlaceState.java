@@ -6,7 +6,7 @@ import entity.Team;
 import entity.troops.Attacker;
 import entity.troops.Troop;
 import entity.troops.TroopType;
-import view.GameView;
+import controller.GameView;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -8,9 +8,8 @@ import entity.troops.Attacker;
 import entity.troops.Healable;
 import entity.troops.Troop;
 import entity.troops.support.Healer;
-import view.GameView;
+import controller.GameView;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 

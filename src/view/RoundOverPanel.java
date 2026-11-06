@@ -1,6 +1,5 @@
 package view;
 
-import controller.states.RoundOverState;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -14,10 +13,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /* A glass-pane prompt keeps the final battlefield visible while blocking placement. */
-public class GameOverPanel extends JPanel {
-    private final JButton restart = new JButton("Restart");
+public class RoundOverPanel extends JPanel {
+    private final JButton nextRound = new JButton("Next Round");
+    private final JLabel winner = new JLabel();
+    private final JLabel reason = new JLabel();
 
-    public GameOverPanel(RoundOverState result, Runnable restartAction) {
+    public RoundOverPanel(Runnable nextRoundAction) {
         super(new GridBagLayout());
         setOpaque(false);
         setFocusCycleRoot(true);
@@ -32,40 +33,41 @@ public class GameOverPanel extends JPanel {
         row.gridx = 0;
         row.insets = new Insets(0, 0, 12, 0);
 
-        JLabel heading = new JLabel("Game over");
+        JLabel heading = new JLabel("Round over");
         heading.setFont(new Font("SansSerif", Font.PLAIN, 15));
         heading.setForeground(SimulationTheme.MUTED);
         row.gridy = 0;
         card.add(heading, row);
 
-        JLabel winner = new JLabel(result.getTitle());
         winner.setFont(new Font("SansSerif", Font.BOLD, 28));
         winner.setForeground(SimulationTheme.TEXT);
         row.gridy = 1;
         card.add(winner, row);
 
-        JLabel reason = new JLabel(result.getReason());
         reason.setFont(SimulationTheme.BODY);
         reason.setForeground(SimulationTheme.TEXT);
         row.gridy = 2;
         card.add(reason, row);
 
-        restart.setFont(new Font("SansSerif", Font.BOLD, 14));
-        restart.setBackground(SimulationTheme.TEAM_A);
-        restart.setForeground(Color.WHITE);
-        restart.setFocusPainted(false);
-        restart.setBorder(BorderFactory.createEmptyBorder(10, 32, 10, 32));
-        restart.addActionListener(e -> restartAction.run());
+        nextRound.setFont(new Font("SansSerif", Font.BOLD, 14));
+        nextRound.setBackground(SimulationTheme.TEAM_A);
+        nextRound.setForeground(Color.WHITE);
+        nextRound.setFocusPainted(false);
+        nextRound.setBorder(BorderFactory.createEmptyBorder(10, 32, 10, 32));
+        nextRound.addActionListener(e -> nextRoundAction.run());
         row.gridy = 3;
         row.insets = new Insets(8, 0, 0, 0);
-        card.add(restart, row);
+        card.add(nextRound, row);
         add(card);
     }
 
-    public JButton getRestartButton() {
-        return restart;
+    public JButton getNextRoundButton() {
+        return nextRound;
     }
-
+    public void showResult(String title, String reasonText) {
+        winner.setText(title);
+        reason.setText(reasonText);
+    }
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

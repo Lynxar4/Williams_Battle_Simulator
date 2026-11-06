@@ -1,7 +1,7 @@
 package controller.states;
 
 import controller.Round;
-import view.GameView;
+import controller.GameView;
 
 public class RoundOverState implements GameState {
     public enum Outcome {
