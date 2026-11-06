@@ -1,7 +1,7 @@
 package view;
 
-import controller.EventLogListener;
-import controller.Round;
+import java.util.List;
+import controller.PlacementRule;
 import entity.Castle;
 import entity.Team;
 import entity.interactables.TileEffect;
@@ -11,7 +11,6 @@ import entity.troops.melee.Infantry;
 import entity.troops.ranged.Archer;
 import entity.troops.support.Healer;
 import entity.troops.support.Priest;
-
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
@@ -95,7 +94,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private final TileEffectSpriteVisitor spriteVisitor = new TileEffectSpriteVisitor(hillSprite, coinSprite, trapSprite);
     private final TileEffectDescriptionVisitor descriptionVisitor = new TileEffectDescriptionVisitor();
 
-    private Round round;
+    private int rows;
+    private int columns;
+    private Team teamA;
+    private Team teamB;
+    private Castle castleA;
+    private Castle castleB;
+    private List<TileEffect> tileEffects = List.of();
+    private boolean placementEnabled;
     private Troop.Team placementTeam = Troop.Team.teamA;
     private BiConsumer<Integer, Integer> placementHandler = (row, column) -> {
     };
@@ -106,7 +112,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private int hoverColumn = -1;
     private boolean fitWholeBoard;
     private JPanel battlefieldView;
-    private EventLogListener eventLog;
     private final JLabel latestEvent = new JLabel(" ");
     private final Timer animationTimer;
     private ArmyHealthSummary teamAHealth = ArmyHealthSummary.empty();
@@ -116,7 +121,9 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         teamBHealth = summaries.teamB();
         repaintView();
     });
+    private PlacementRule placementRule = (team, row, column) -> false;
 
+    /* ---- CONSTRUCTOR ---- */
     public BattlefieldPanel() {
         setBackground(SimulationTheme.BACKGROUND);
         setToolTipText("");
@@ -141,7 +148,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (round != null && round.isPlacingTroops() && SwingUtilities.isLeftMouseButton(e)) {
+                if (placementEnabled && SwingUtilities.isLeftMouseButton(e)) {
                     placementHandler.accept(rowFor(e.getY()), columnFor(e.getX()));
                 }
             }
@@ -155,7 +162,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                if (round != null) {
+                if (hasBoard()) {
                     hoverRow = rowFor(e.getY());
                     hoverColumn = columnFor(e.getX());
                     repaint();
@@ -171,13 +178,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         });
     }
 
+
     private void showTroopMenu(MouseEvent e) {
-        if (!e.isPopupTrigger() || round == null || !round.isPlacingTroops() || !getGridBounds().contains(e.getPoint())) {
+        if (!e.isPopupTrigger() || !placementEnabled || !getGridBounds().contains(e.getPoint())) {
             return;
         }
         int row = rowFor(e.getY());
         int column = columnFor(e.getX());
-        Stream.concat(round.getTeamA().getArmy().stream(), round.getTeamB().getArmy().stream()).filter(troop -> !troop.isDestroyed() && troop.isAt(row, column)).findFirst().ifPresent(troop -> troopMenuHandler.accept(troop, e));
+        allTroops().filter(troop -> !troop.isDestroyed() && troop.isAt(row, column)).findFirst().ifPresent(troop -> troopMenuHandler.accept(troop, e));
     }
 
     public void setTroopMenuHandler(BiConsumer<Troop, MouseEvent> handler) {
@@ -196,8 +204,8 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         battlefieldView.setBackground(SimulationTheme.BACKGROUND);
         battlefieldView.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
-        battlefieldView.add(teamSummary(round.getTeamA(), round.getTeamACastle(), "TEAM A", SimulationTheme.TEAM_A), BorderLayout.WEST);
-        battlefieldView.add(teamSummary(round.getTeamB(), round.getTeamBCastle(), "TEAM B", SimulationTheme.TEAM_B), BorderLayout.EAST);
+        battlefieldView.add(teamSummary(true, "TEAM A", SimulationTheme.TEAM_A), BorderLayout.WEST);
+        battlefieldView.add(teamSummary(false, "TEAM B", SimulationTheme.TEAM_B), BorderLayout.EAST);
 
         JScrollPane scrollPane = new JScrollPane(this);
         scrollPane.setBorder(BorderFactory.createLineBorder(SimulationTheme.BORDER));
@@ -213,11 +221,18 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         return battlefieldView;
     }
 
-    private JPanel teamSummary(Team team, Castle castle, String title, Color accent) {
+    private JPanel teamSummary(boolean isTeamA, String title, Color accent) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics graphics) {
                 super.paintComponent(graphics);
+                if (!hasBoard()) {
+                    return; // before the first showBoard there's nothing to draw
+                }
+                // read the fields NOW, so we always get the latest board
+                Team team = isTeamA ? teamA : teamB;
+                Castle castle = isTeamA ? castleA : castleB;
+
                 Graphics2D g = (Graphics2D) graphics.create();
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 drawSidebar(g, 0, 0, getHeight() - 3, team, castle, title, accent);
@@ -250,9 +265,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     public void refresh() {
-        latestEvent.setText(eventLog == null || eventLog.getLatest().isEmpty() ? " " : eventLog.getLatest());
-
-        if (round != null) healthMonitor.request(round.getTeamA(), round.getTeamB());
+        if (hasBoard()) healthMonitor.request(teamA, teamB);
         repaintView();
     }
 
@@ -266,7 +279,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
     @Override
     public Dimension getPreferredSize() {
-        return round == null ? new Dimension(800, 680) : new Dimension(round.getColumnCount() * MIN_TILE_SIZE + 2 * PADDING, round.getRowCount() * MIN_TILE_SIZE + 2 * PADDING);
+        return !hasBoard() ? new Dimension(800, 680) : new Dimension(columns * MIN_TILE_SIZE + 2 * PADDING, rows * MIN_TILE_SIZE + 2 * PADDING);
     }
 
     @Override
@@ -296,26 +309,26 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
     /* Drawing and mouse input share these bounds, including after a resize. */
     public Rectangle getGridBounds() {
-        if (round == null) {
+        if (!hasBoard()) {
             return new Rectangle();
         }
 
         int availableWidth = Math.max(1, getWidth() - 2 * PADDING);
         int availableHeight = Math.max(1, getHeight() - 2 * PADDING);
 
-        int width = Math.max(1, availableWidth / round.getColumnCount()) * round.getColumnCount();
+        int width = Math.max(1, availableWidth / columns) * columns;
 
-        int height = Math.max(1, availableHeight / round.getRowCount()) * round.getRowCount();
+        int height = Math.max(1, availableHeight / rows) * rows;
 
         return new Rectangle((getWidth() - width) / 2, (getHeight() - height) / 2, width, height);
     }
 
     private int cellWidth() {
-        return getGridBounds().width / round.getColumnCount();
+        return getGridBounds().width / columns;
     }
 
     private int cellHeight() {
-        return getGridBounds().height / round.getRowCount();
+        return getGridBounds().height / rows;
     }
 
     public Rectangle getTileBounds(int row, int column) {
@@ -335,14 +348,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private boolean isWithinGrid(int row, int column) {
-        return row >= 0 && row < round.getRowCount() && column >= 0 && column < round.getColumnCount();
+        return row >= 0 && row < rows && column >= 0 && column < columns;
     }
 
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
 
-        if (round == null) {
+        if (!hasBoard()) {
             return;
         }
 
@@ -359,24 +372,22 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         drawGrid(g, board);
         drawHover(g, board);
 
-        for (TileEffect effect : round.getTileEffects()) {
+        for (TileEffect effect : tileEffects) {
             drawTileEffect(g, board, effect);
         }
 
-        drawCastle(g, board, round.getTeamACastle(), SimulationTheme.TEAM_A);
-        drawCastle(g, board, round.getTeamBCastle(), SimulationTheme.TEAM_B);
+        drawCastle(g, board, castleA, SimulationTheme.TEAM_A);
+        drawCastle(g, board, castleB, SimulationTheme.TEAM_B);
 
-        Stream.concat(round.getTeamA().getArmy().stream(), round.getTeamB().getArmy().stream()).sorted(Comparator.comparingInt(Troop::getRow)).forEach(troop -> drawTroop(g, board, troop));
+        allTroops().sorted(Comparator.comparingInt(Troop::getRow)).forEach(troop -> drawTroop(g, board, troop));
 
-        if (movingTroop != null && round.isPlacingTroops()) {
+        if (movingTroop != null && placementEnabled) {
             Rectangle tile = getTileBounds(movingTroop.getRow(), movingTroop.getColumn());
             g.setColor(SimulationTheme.TEAM_A);
             g.setStroke(new BasicStroke(3f));
             g.drawRect(tile.x + 2, tile.y + 2, Math.max(1, tile.width - 4), Math.max(1, tile.height - 4));
             g.setStroke(new BasicStroke(1f));
         }
-
-        round.render();
         g.dispose();
     }
 
@@ -384,9 +395,9 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         int width = cellWidth();
         int height = cellHeight();
 
-        for (int row = 0; row < round.getRowCount(); row++) {
-            for (int column = 0; column < round.getColumnCount(); column++) {
-                boolean left = column < round.getColumnCount() / 2;
+        for (int row = 0; row < rows; row++) {
+            for (int column = 0; column < columns; column++) {
+                boolean left = column < columns / 2;
                 boolean alternate = (row + column) % 2 == 0;
 
                 g.setColor(left ? new Color(226, alternate ? 235 : 232, 224) : new Color(235, alternate ? 234 : 231, 220));
@@ -395,14 +406,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
             }
         }
 
-        for (int column = 0; column <= round.getColumnCount(); column++) {
+        for (int column = 0; column <= columns; column++) {
             g.setColor(column % 5 == 0 ? new Color(176, 190, 176) : new Color(205, 214, 201));
 
             int x = board.x + column * width;
             g.drawLine(x, board.y, x, board.y + board.height);
         }
 
-        for (int row = 0; row <= round.getRowCount(); row++) {
+        for (int row = 0; row <= rows; row++) {
             g.setColor(row % 5 == 0 ? new Color(176, 190, 176) : new Color(205, 214, 201));
 
             int y = board.y + row * height;
@@ -422,16 +433,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private void drawHover(Graphics2D g, Rectangle board) {
-        if (!round.isPlacingTroops() || !isWithinGrid(hoverRow, hoverColumn)) {
+        if (!placementEnabled || !isWithinGrid(hoverRow, hoverColumn)) {
             return;
         }
 
-        boolean ownHalf = (hoverColumn < round.getColumnCount() / 2) == (placementTeam == Troop.Team.teamA);
-
-        boolean valid = ownHalf && (round.isCellFree(hoverRow, hoverColumn) || movingTroop != null && movingTroop.isAt(hoverRow, hoverColumn));
+        // Ask the controller. The panel doesn't know WHY a tile is valid, only the answer.
+        boolean valid = placementRule.isValid(placementTeam, hoverRow, hoverColumn);
 
         g.setColor(valid ? new Color(63, 127, 211, 100) : new Color(207, 72, 61, 110));
-
         Rectangle tile = getTileBounds(hoverRow, hoverColumn);
         g.fillRect(tile.x, tile.y, tile.width, tile.height);
     }
@@ -606,11 +615,10 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     }
 
     private boolean hasActiveDeathAnimation() {
-        if (round == null) {
+        if (!hasBoard()) {
             return false;
         }
-
-        return Stream.concat(round.getTeamA().getArmy().stream(), round.getTeamB().getArmy().stream()).anyMatch(troop -> troop.isDestroyed() && !isDeathAnimationFinished(troop));
+        return allTroops().anyMatch(troop -> troop.isDestroyed() && !isDeathAnimationFinished(troop));
     }
 
     private Image getTroopSprite(Troop troop) {
@@ -687,11 +695,6 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         glow.dispose();
     }
 
-    public void setEventLog(EventLogListener eventLog) {
-        this.eventLog = eventLog;
-        refresh();
-    }
-
     private void drawSidebar(Graphics2D g, int x, int y, int availableHeight, Team team, Castle castle, String title, Color accent) {
 
         int width = SIDEBAR_WIDTH;
@@ -728,7 +731,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
         g.drawLine(x + 16, y + 125, x + width - 16, y + 125);
 
-        ArmyHealthSummary health = team == round.getTeamA() ? teamAHealth : teamBHealth;
+        ArmyHealthSummary health = team == teamA ? teamAHealth : teamBHealth;
 
         sidebarStat(g, "Groups", Integer.toString(health.livingGroups()), x, y + 153, width);
 
@@ -780,7 +783,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
     @Override
     public String getToolTipText(MouseEvent e) {
-        if (round == null) {
+        if (!hasBoard()) {
             return null;
         }
 
@@ -792,7 +795,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
             return null;
         }
 
-        Troop troop = Stream.concat(round.getTeamA().getArmy().stream(), round.getTeamB().getArmy().stream()).filter(group -> group.isAt(row, column)).filter(group -> !group.isDestroyed() || !isDeathAnimationFinished(group)).findFirst().orElse(null);
+        Troop troop = allTroops().filter(group -> group.isAt(row, column)).filter(group -> !group.isDestroyed() || !isDeathAnimationFinished(group)).findFirst().orElse(null);
 
         if (troop != null) {
             return troop.getClass().getSimpleName() + " | " + (troop.getTeam() == Troop.Team.teamA ? "Team A" : "Team B") + " | Soldiers: " + troop.getGroupSize() + " | HP: " + troop.getGroupHealth() + "/" + troop.getMaxHealth();
@@ -802,7 +805,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         final int hoverRowFinal = row;
         final int hoverColumnFinal = column;
 
-        TileEffect effect = round.getTileEffects().stream().filter(tileEffect -> tileEffect.isAt(hoverRowFinal, hoverColumnFinal)).findFirst().orElse(null);
+        TileEffect effect = tileEffects.stream().filter(tileEffect -> tileEffect.isAt(hoverRowFinal, hoverColumnFinal)).findFirst().orElse(null);
 
         if (effect != null) {
             return effect.accept(descriptionVisitor);
@@ -850,13 +853,33 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
         hoverColumn = -1;
         repaint();
     }
-
-    public void setRound(Round round) {
+    public void showBoard(int rows, int columns, Team teamA, Team teamB,
+                          Castle castleA, Castle castleB, List<TileEffect> tileEffects) {
+        this.rows = rows;
+        this.columns = columns;
+        this.teamA = teamA;
+        this.teamB = teamB;
+        this.castleA = castleA;
+        this.castleB = castleB;
+        this.tileEffects = tileEffects;
         healthMonitor.reset();
         teamAHealth = ArmyHealthSummary.empty();
         teamBHealth = ArmyHealthSummary.empty();
-        this.round = round;
+        revalidate();   // the preferred size depends on rows/columns
         refresh();
+    }
+
+    public void setPlacementEnabled(boolean enabled) {
+        placementEnabled = enabled;
+        if (!enabled) {
+            clearHover();
+        }
+        repaint();
+    }
+
+    public void showLatestEvent(String text) {
+        // a single space keeps the label's height, so the layout doesn't jump
+        latestEvent.setText(text == null || text.isEmpty() ? " " : text);
     }
 
     public void setPlacementHandler(BiConsumer<Integer, Integer> handler) {
@@ -867,5 +890,20 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     public void setPlacementTeam(Troop.Team team) {
         this.placementTeam = team;
         repaint();
+    }
+
+    // True once showBoard has been called.
+    private boolean hasBoard() {
+        return teamA != null;
+    }
+
+    // Every troop on the board, both teams.
+    private Stream<Troop> allTroops() {
+        return Stream.concat(teamA.getArmy().stream(), teamB.getArmy().stream());
+    }
+
+    public void setPlacementRule(PlacementRule rule) {
+        placementRule = rule;
+        repaint(); // redraw the hover with the new rule
     }
 }
