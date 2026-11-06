@@ -4,7 +4,6 @@ import controller.Round;
 import entity.Castle;
 import entity.Damageable;
 import entity.Positioned;
-import entity.Team;
 import entity.troops.Attacker;
 import entity.troops.Healable;
 import entity.troops.Troop;
@@ -120,8 +119,8 @@ public class BattleState implements GameState {
     }
 
     // The BFS Pathfinding Method
-    // Spreads out from the troop one step at a time until it finds a free cell the troop can attack the target from.
-    private List<Positioned> findPath(Round round, Troop troop, Positioned target) {
+    // Spreads out from the troop one step at a time until it finds a free cell where the target is in range
+    private List<Positioned> findPath(Round round, Troop troop, Positioned target, int range) {
         Positioned startNode = new PathNode(troop.getRow(), troop.getColumn());
 
         Queue<Positioned> queue = new LinkedList<>(); // keeps track of the cells we need to explore next
@@ -137,7 +136,7 @@ public class BattleState implements GameState {
             Positioned current = queue.poll();
 
             // Get the path to a cell the troop can hit a target from
-            if (distance(current, target) <= troop.getRange()) {
+            if (distance(current, target) <= range) {
                 return buildPath(parentMap, startNode, current);
             }
 
@@ -157,30 +156,41 @@ public class BattleState implements GameState {
         return null; // nothing reachable
     }
 
-    // follows the parents back from the goal to the start
+    // Follows the parents back from the goal to the start
     private List<Positioned> buildPath(Map<Positioned, Positioned> parentMap, Positioned start, Positioned end) {
         List<Positioned> path = new ArrayList<>();
         Positioned current = end;
         while (!current.equals(start)) {
-            path.add(0, current); // Put the current cell at the front of the list
-            current = parentMap.get(current); // Move to the "Parent" (the cell we came from)
+            path.add(0, current); // put the current cell at the front of the list
+            current = parentMap.get(current); // move to the "Parent" (the cell we came from)
         }
         return path;
     }
 
+    // Takes the first step of the BFS path. Returns false if there is no route
+    private boolean stepAlongPath(Round round, Troop troop, Positioned target, int range) {
+        List<Positioned> path = findPath(round, troop, target, range);
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        troop.setPosition(path.get(0).getRow(), path.get(0).getColumn());
+        return true;
+    }
+
+    // Take up to speed steps per tick. Each step re-picks the target and moves one cell
     private void moveTroop(Round round, Troop troop) {
         for (int step = 0; step < troop.getSpeed(); ++step) {
             Positioned target = findTarget(round, troop);
             if (target == null || isInRange(round, troop, target)) {
-                return;
+                return; // stop moving if the target is in range or there's no target
             }
 
             // a free hill close by is worth stepping aside for, because
             // holding it pays for the rest of the fight. if the detour is
             // blocked the troop carries on at its target as before.
             Optional<TileEffect> hill = hillWorthTaking(round, troop, target);
-            boolean moved = hill.map(free -> stepOnto(round, troop, free)).orElse(false)
-                    || stepToward(round, troop, target);
+            boolean moved = hill.map(free -> stepAlongPath(round, troop, free, 0)).orElse(false)
+                    || stepAlongPath(round, troop, target, troop.getRange());
 
             if (!moved) {
                 return;
@@ -211,15 +221,6 @@ public class BattleState implements GameState {
                 .filter(hill -> distance(troop, hill) <= MAX_HILL_DETOUR)
                 .filter(hill -> distance(troop, hill) < toTarget)
                 .min(Comparator.comparingInt(hill -> distance(troop, hill)));
-    }
-
-    // stepToward stops one short because it assumes you attack from next to
-    // the target. a hill has to be stood on, so the last step is taken here.
-    private boolean stepOnto(Round round, Troop troop, Positioned destination) {
-        if (distance(troop, destination) == 1) {
-            return tryMove(round, troop, destination.getRow(), destination.getColumn());
-        }
-        return stepToward(round, troop, destination);
     }
 
     // high ground lets ranged troops shoot further, so range is read from the
