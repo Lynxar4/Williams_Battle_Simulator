@@ -45,7 +45,6 @@ public class Team {
     public void addTroop(Troop troop) {
         army.add(troop);
     }
-
     public void clearArmy(){
         army.clear();
     }

@@ -1,14 +1,8 @@
 package view;
 
-import controller.states.RoundOverState;
 import controller.BattleSummary;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
+
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -20,6 +14,7 @@ public class RoundOverPanel extends JPanel {
     private final JButton nextRound = new JButton("Next Round");
     private final JLabel winner = new JLabel();
     private final JLabel reason = new JLabel();
+    private final JPanel summaryHolder = new JPanel(new BorderLayout()); // table goes in here
 
     public RoundOverPanel(Runnable nextRoundAction) {
         super(new GridBagLayout());
@@ -54,7 +49,8 @@ public class RoundOverPanel extends JPanel {
         row.gridy = 3;
         row.fill = GridBagConstraints.HORIZONTAL;
         row.insets = new Insets(8, 0, 16, 0);
-        card.add(summaryTable(result.getSummary()), row);
+        summaryHolder.setOpaque(false);
+        card.add(summaryHolder, row);
 
         nextRound.setFont(new Font("SansSerif", Font.BOLD, 14));
         nextRound.setBackground(SimulationTheme.TEAM_A);
@@ -105,9 +101,13 @@ public class RoundOverPanel extends JPanel {
     public JButton getNextRoundButton() {
         return nextRound;
     }
-    public void showResult(String title, String reasonText) {
+    public void showResult(String title, String reasonText,BattleSummary summary) {
         winner.setText(title);
         reason.setText(reasonText);
+        summaryHolder.removeAll();                 // remove last round's table
+        summaryHolder.add(summaryTable(summary));  // add this round's table
+        summaryHolder.revalidate();                // recalculate the layout
+        summaryHolder.repaint();
     }
     @Override
     protected void paintComponent(Graphics g) {

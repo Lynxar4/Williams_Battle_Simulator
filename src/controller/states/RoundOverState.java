@@ -43,7 +43,7 @@ public class RoundOverState implements GameState {
     public void onEnter(Round round) {
         GameView view = round.getView();
         view.refreshBoard();                     // draw the final position once
-        view.showRoundResult(getTitle(), reason);
+        view.showRoundResult(getTitle(), reason, summary);
     }
 
     @Override

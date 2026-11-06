@@ -24,7 +24,7 @@ public interface GameView {
     void highlightMovingTroop(Troop troop); // null clears the highlight
     void showMessage(String text, boolean isError);
     void showLatestEvent(String text);
-    void showRoundResult(String title, String reason);
+    void showRoundResult(String title, String reason, BattleSummary summary);
     void hideRoundResult();
     void setPlayerActions(PlayerActions actions);
 }

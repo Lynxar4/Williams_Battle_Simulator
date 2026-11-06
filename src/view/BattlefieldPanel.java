@@ -4,6 +4,7 @@ import java.util.List;
 import controller.PlacementRule;
 import controller.EventLogListener;
 import controller.TileEffectSummary;
+import controller.TileEffectSummaryCollector;
 import entity.Castle;
 import entity.Team;
 import entity.interactables.TileEffect;
@@ -239,14 +240,14 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
 
                 Graphics2D g = (Graphics2D) graphics.create();
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                terrain = round.tileEffectSummary();
+                terrain = tileEffects.stream().collect(new TileEffectSummaryCollector());
                 drawSidebar(g, 0, 0, getHeight() - 3, team, castle, title, accent);
                 g.dispose();
             }
         };
 
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 443));
+        card.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 563));
         card.setToolTipText("<html>Health is remaining HP / starting HP, including defeated groups.<br>" + "Healthy: above 70%; wounded: 30-70%; critical: below 30%; defeated: 0 HP.<br>" + "Health categories count groups, not individual soldiers.</html>");
 
         JPanel column = new JPanel(new BorderLayout());
@@ -703,7 +704,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     private void drawSidebar(Graphics2D g, int x, int y, int availableHeight, Team team, Castle castle, String title, Color accent) {
 
         int width = SIDEBAR_WIDTH;
-        int height = Math.min(availableHeight, 440);
+        int height = Math.min(availableHeight, 560);
 
         g.setColor(new Color(221, 227, 233));
 
@@ -772,8 +773,7 @@ public class BattlefieldPanel extends JPanel implements Scrollable {
     // what the tile effect census found. hills and traps are this team's;
     // the gold line is the same on both sides because it is still unclaimed.
     private void drawTerrain(Graphics2D g, int x, int y, int width, Team team, Color accent) {
-        Troop.Team side = team == round.getTeamA() ? Troop.Team.teamA : Troop.Team.teamB;
-
+        Troop.Team side = team == teamA ? Troop.Team.teamA : Troop.Team.teamB;
         g.setColor(SimulationTheme.BORDER);
         g.drawLine(x + 16, y + 445, x + width - 16, y + 445);
 

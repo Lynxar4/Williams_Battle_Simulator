@@ -1,5 +1,6 @@
 package view;
 
+import controller.BattleSummary;
 import controller.GameView;
 import controller.PlacementRule;
 import controller.PlayerActions;
@@ -36,6 +37,7 @@ public class SwingGameView implements GameView {
     }
 
     /* ---- PUBLIC METHODS ---- */
+
     public void setPlayerActions(PlayerActions actions) {
         this.actions = actions;
         purchasePanel.setPlayerActions(actions);
@@ -93,8 +95,8 @@ public class SwingGameView implements GameView {
 
     /* ---- ROUND OVER ---- */
     @Override
-    public void showRoundResult(String title, String reason) {
-        roundOverPanel.showResult(title, reason);
+    public void showRoundResult(String title, String reason, BattleSummary summary) {
+        roundOverPanel.showResult(title, reason, summary);
         roundOverPanel.setVisible(true);
         // Enter presses Next Round
         frame.getRootPane().setDefaultButton(roundOverPanel.getNextRoundButton());
