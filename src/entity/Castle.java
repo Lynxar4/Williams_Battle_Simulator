@@ -36,6 +36,10 @@ public class Castle implements Damageable {
         return column;
     }
 
+    public void resetHealth() {
+        health = BASE_HEALTH;
+    }
+
     public int getHealth() {
         return health;
     }

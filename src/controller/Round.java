@@ -153,6 +153,10 @@ public class Round {
         return owner == Troop.Team.teamA ? teamA : teamB;
     }
 
+    public void resetCastles() {
+        teamACastle.resetHealth();
+        teamBCastle.resetHealth();
+    }
     /*---- PRIVATE METHODS ---- */
 
     // the notify step. every listener gets the same event.

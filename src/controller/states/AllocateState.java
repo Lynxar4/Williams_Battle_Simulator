@@ -5,12 +5,15 @@ import controller.Round;
 public class AllocateState implements GameState {
 
     @Override
-    public void update(Round round) {
-        round.spawnTileEffects();
-        round.setCurrentState(new PlaceState());
-    }
+    public void onEnter(Round round) {
+        round.resetCastles();
+        round.spawnTileEffects();   // already clears last round's effects first
 
-    @Override
-    public void render(Round round) {
+        round.getView().showBoard(round.getRowCount(), round.getColumnCount(),
+                round.getTeamA(), round.getTeamB(),
+                round.getTeamACastle(), round.getTeamBCastle(),
+                round.getTileEffects());
+
+        round.setCurrentState(new PlaceState());
     }
 }

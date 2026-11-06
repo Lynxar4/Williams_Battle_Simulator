@@ -39,4 +39,11 @@ public class RoundOverState implements GameState {
         view.showRoundResult(getTitle(), reason);
     }
 
+    @Override
+    public void onNextRoundRequested(Round round) {
+        round.getView().hideRoundResult();   // the state that showed it, hides it
+        round.getTeamA().clearArmy();
+        round.getTeamB().clearArmy();
+        round.setCurrentState(new AllocateState());
+    }
 }
