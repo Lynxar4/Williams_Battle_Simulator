@@ -4,7 +4,6 @@ import controller.Round;
 import entity.Castle;
 import entity.Damageable;
 import entity.Positioned;
-import entity.Team;
 import entity.troops.Attacker;
 import entity.troops.Healable;
 import entity.troops.Troop;
@@ -18,6 +17,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 public class BattleState implements GameState {
 
@@ -98,24 +104,93 @@ public class BattleState implements GameState {
     /*  ---------   */
 
     /*  MOVEMENT LOGIC*/
+    // A simple helper to represent a coordinate in the grid for pathfinding
+    record PathNode(int row, int col) implements Positioned {
+        @Override
+        public boolean isAt(int row, int column) {
+            return this.row == row && this.col == column;
+        }
 
-    /*
-        Moves the troop 1 cell per step instead of one big jump. Steps match the troop's speed member.
-        If there is no target or target is in range the troop doesn't move
-    */
+        @Override
+        public int getRow() { return row; }
+
+        @Override
+        public int getColumn() { return col; }
+    }
+
+    // The BFS Pathfinding Method
+    // Spreads out from the troop one step at a time until it finds a free cell where the target is in range
+    private List<Positioned> findPath(Round round, Troop troop, Positioned target, int range) {
+        Positioned startNode = new PathNode(troop.getRow(), troop.getColumn());
+
+        Queue<Positioned> queue = new LinkedList<>(); // keeps track of the cells we need to explore next
+        Map<Positioned, Positioned> parentMap = new HashMap<>(); // remembers which cell each cell was reached from
+        Set<Positioned> visited = new HashSet<>(); // holds cells already seen so we never check one twice
+
+        queue.add(startNode);
+        visited.add(startNode);
+
+        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+        while (!queue.isEmpty()) {
+            Positioned current = queue.poll();
+
+            // Get the path to a cell the troop can hit a target from
+            if (distance(current, target) <= range) {
+                return buildPath(parentMap, startNode, current);
+            }
+
+            for (int[] dir : directions) {
+                int nextRow = current.getRow() + dir[0];
+                int nextCol = current.getColumn() + dir[1];
+                Positioned next = new PathNode(nextRow, nextCol);
+
+                // isBlocked already rejects cells that are out of the map
+                if (!visited.contains(next) && !round.isBlocked(nextRow, nextCol)) {
+                    visited.add(next);
+                    parentMap.put(next, current);
+                    queue.add(next);
+                }
+            }
+        }
+        return null; // nothing reachable
+    }
+
+    // Follows the parents back from the goal to the start
+    private List<Positioned> buildPath(Map<Positioned, Positioned> parentMap, Positioned start, Positioned end) {
+        List<Positioned> path = new ArrayList<>();
+        Positioned current = end;
+        while (!current.equals(start)) {
+            path.add(0, current); // put the current cell at the front of the list
+            current = parentMap.get(current); // move to the "Parent" (the cell we came from)
+        }
+        return path;
+    }
+
+    // Takes the first step of the BFS path. Returns false if there is no route
+    private boolean stepAlongPath(Round round, Troop troop, Positioned target, int range) {
+        List<Positioned> path = findPath(round, troop, target, range);
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        troop.setPosition(path.get(0).getRow(), path.get(0).getColumn());
+        return true;
+    }
+
+    // Take up to speed steps per tick. Each step re-picks the target and moves one cell
     private void moveTroop(Round round, Troop troop) {
         for (int step = 0; step < troop.getSpeed(); ++step) {
             Positioned target = findTarget(round, troop);
             if (target == null || isInRange(round, troop, target)) {
-                return;
+                return; // stop moving if the target is in range or there's no target
             }
 
             // a free hill close by is worth stepping aside for, because
             // holding it pays for the rest of the fight. if the detour is
             // blocked the troop carries on at its target as before.
             Optional<TileEffect> hill = hillWorthTaking(round, troop, target);
-            boolean moved = hill.map(free -> stepOnto(round, troop, free)).orElse(false)
-                    || stepToward(round, troop, target);
+            boolean moved = hill.map(free -> stepAlongPath(round, troop, free, 0)).orElse(false)
+                    || stepAlongPath(round, troop, target, troop.getRange());
 
             if (!moved) {
                 return;
@@ -146,15 +221,6 @@ public class BattleState implements GameState {
                 .filter(hill -> distance(troop, hill) <= MAX_HILL_DETOUR)
                 .filter(hill -> distance(troop, hill) < toTarget)
                 .min(Comparator.comparingInt(hill -> distance(troop, hill)));
-    }
-
-    // stepToward stops one short because it assumes you attack from next to
-    // the target. a hill has to be stood on, so the last step is taken here.
-    private boolean stepOnto(Round round, Troop troop, Positioned destination) {
-        if (distance(troop, destination) == 1) {
-            return tryMove(round, troop, destination.getRow(), destination.getColumn());
-        }
-        return stepToward(round, troop, destination);
     }
 
     // high ground lets ranged troops shoot further, so range is read from the
@@ -198,49 +264,6 @@ public class BattleState implements GameState {
         }
         troop.setTarget(closestTarget);
         return closestTarget;
-    }
-
-    private boolean stepToward(Round round, Troop troop, Positioned target) {
-        int rowDiff = target.getRow() - troop.getRow();
-        int colDiff = target.getColumn() - troop.getColumn();
-        if (Math.abs(rowDiff) + Math.abs(colDiff) <= 1) {
-            return false; // This means the troops are adjacent, Attack logic will be added here later
-        }
-
-        int colStep = Integer.signum(colDiff); // signum returns the sign of a number. 1 for positive, 0 for 0 and -1 for negative. We use this because we only need the troop to move 1 cell.
-        int rowStep = Integer.signum(rowDiff);
-
-        // try moving sideways
-        if (colStep != 0 && tryMove(round, troop, troop.getRow(), troop.getColumn() + colStep)) {
-            return true;
-        }
-
-        // if sideways didn't work try moving up and down
-        if (rowStep != 0 && tryMove(round, troop, troop.getRow() + rowStep, troop.getColumn())) {
-            return true;
-        }
-
-        // If the primary directions were blocked, try the alternative axis to move around.
-        // This fixes the issue where troops get stuck behind allies who are blocking the direct path.
-        if (colStep == 0 && rowStep != 0) {
-            // Try moving sideways to bypass the block
-            if (tryMove(round, troop, troop.getRow(), troop.getColumn() + 1)) return true;
-            if (tryMove(round, troop, troop.getRow(), troop.getColumn() - 1)) return true;
-        } else if (rowStep == 0 && colStep != 0) {
-            // Try moving vertically to bypass the block
-            if (tryMove(round, troop, troop.getRow() + 1, troop.getColumn())) return true;
-            if (tryMove(round, troop, troop.getRow() - 1, troop.getColumn())) return true;
-        }
-
-        return false;
-    }
-
-    private boolean tryMove(Round round, Troop troop, int row, int column) {
-        if (round.isBlocked(row, column)) {
-            return false;
-        }
-        troop.setPosition(row, column);
-        return true;
     }
 
     private int distance(Positioned a, Positioned b) {
