@@ -180,6 +180,7 @@ public class PlaceState implements GameState {
         GameView view = round.getView();
         view.showGold(round.getTeamA().getBudget(), round.getTeamB().getBudget());
         view.setStartBattleAllowed(canStartBattle(round));
+        view.refreshBoard();
     }
 
 }
