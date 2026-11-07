@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.Round;
 import controller.BattleSummary;
 import controller.Session;
@@ -11,7 +12,7 @@ import entity.troops.melee.Cavalry;
 import entity.troops.melee.Infantry;
 import entity.troops.support.Priest;
 import javax.swing.SwingUtilities;
-import view.GameOverPanel;
+import view.RoundOverPanel;
 
 public class GameOverTest {
     public static void main(String[] args) throws Exception {
@@ -21,13 +22,13 @@ public class GameOverTest {
         checkBattleSummary();
         checkNoExtraTurns();
         checkTrapElimination();
-        checkRestart();
-        SwingUtilities.invokeAndWait(GameOverTest::checkRestartButton);
-        System.out.println("Game over and restart checks passed.");
+        checkNextRound();
+        SwingUtilities.invokeAndWait(GameOverTest::checkNextRoundButton);
+        System.out.println("Round results and Next Round checks passed.");
     }
 
     private static Round placementRound() {
-        Round round = new Round(new Team("teamA"), new Team("teamB"));
+        Round round = newRound(new Team("teamA"), new Team("teamB"));
         round.start();
         round.update();
         return round;
@@ -37,15 +38,15 @@ public class GameOverTest {
         Round round = placementRound();
         round.getTeamA().addTroop(new Infantry(1, 1, 1, Troop.Team.teamA));
         round.getTeamB().addTroop(new Infantry(1, 28, 1, Troop.Team.teamB));
-        round.startBattle();
+        startBattle(round);
         return round;
     }
 
     private static void checkPlacementDoesNotEnd() {
         Round round = placementRound();
-        check(!round.checkGameOver(), "Empty armies during buying must not end the match");
+        check(!isGameOver(round), "Empty armies during buying must not end the match");
         round.update();
-        check(round.isPlacingTroops(), "Buying should remain open until battle starts");
+        check(isPlacingTroops(round), "Buying should remain open until battle starts");
     }
 
     private static void checkDefeatConditions() throws Exception {
@@ -73,7 +74,7 @@ public class GameOverTest {
                         && round.getTeamA().getArmy().get(0).getRow() == row, "The finished match kept changing");
                 int budget = round.getTeamA().getBudget();
                 try {
-                    round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, 0, 0);
+                    buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, 0, 0);
                     throw new AssertionError("Buying was allowed after game over");
                 } catch (InvalidPlacementException expected) {
                     check(round.getTeamA().getBudget() == budget, "A finished match spent gold");
@@ -88,7 +89,7 @@ public class GameOverTest {
         round.getTeamA().addTroop(survivor);
         round.getTeamA().getArmy().get(0).takeDamage(10_000);
         round.update();
-        check(!round.isGameOver(), "One dead group should not defeat a team with survivors");
+        check(!isGameOver(round), "One dead group should not defeat a team with survivors");
         survivor.takeDamage(10_000);
         round.update();
         check(result(round).getOutcome() == RoundOverState.Outcome.TEAM_B_WINS, "The last group did not end the match");
@@ -114,20 +115,20 @@ public class GameOverTest {
 
     private static void checkBattleSummary() throws Exception {
         Round round = placementRound();
-        Troop infantry = round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 3, 0, 0);
-        Troop priests = round.buyTroop(Troop.Team.teamA, TroopType.PRIEST, 2, 0, 1);
-        Troop removed = round.buyTroop(Troop.Team.teamA, TroopType.ARCHER, 4, 0, 2);
-        round.removePlacedTroop(removed);
-        Troop cavalry = round.buyTroop(Troop.Team.teamB, TroopType.CAVALRY, 4, 0, 29);
-        Troop enemy = round.buyTroop(Troop.Team.teamB, TroopType.INFANTRY, 2, 1, 29);
-        round.startBattle();
+        Troop infantry = buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 3, 0, 0);
+        Troop priests = buyTroop(round, Troop.Team.teamA, TroopType.PRIEST, 2, 0, 1);
+        Troop removed = buyTroop(round, Troop.Team.teamA, TroopType.ARCHER, 4, 0, 2);
+        removePlacedTroop(round, removed);
+        Troop cavalry = buyTroop(round, Troop.Team.teamB, TroopType.CAVALRY, 4, 0, 29);
+        Troop enemy = buyTroop(round, Troop.Team.teamB, TroopType.INFANTRY, 2, 1, 29);
+        startBattle(round);
         infantry.takeDamage(134); // Armour reduces this to 100: two soldiers survive.
         priests.takeDamage(101); // One partially injured priest survives.
         cavalry.takeDamage(10_000);
         enemy.takeDamage(5); // Partial damage does not count as a lost soldier.
         round.getTeamACastle().takeDamage(123);
         round.getTeamBCastle().takeDamage(10_000);
-        round.checkGameOver();
+        round.update();
 
         BattleSummary summary = result(round).getSummary();
         check(summary.teamA().equals(new BattleSummary.ArmyResult(5, 3, 877)),
@@ -149,7 +150,7 @@ public class GameOverTest {
         army.getTeamA().addTroop(new Cavalry(0, 0, 10, Troop.Team.teamA));
         army.getTeamA().addTroop(new Infantry(15, 28, 1, Troop.Team.teamA));
         army.getTeamB().addTroop(new Infantry(0, 1, 1, Troop.Team.teamB));
-        army.startBattle();
+        startBattle(army);
         int castleHealth = army.getTeamBCastle().getHealth();
         army.update();
         check(result(army).getOutcome() == RoundOverState.Outcome.TEAM_A_WINS, "Army defeat was missed during a turn");
@@ -160,7 +161,7 @@ public class GameOverTest {
                 castle.getTeamBCastle().getColumn(), 50, Troop.Team.teamA));
         castle.getTeamB().addTroop(new Infantry(castle.getTeamACastle().getRow() - 1,
                 castle.getTeamACastle().getColumn(), 1, Troop.Team.teamB));
-        castle.startBattle();
+        startBattle(castle);
         castleHealth = castle.getTeamACastle().getHealth();
         castle.update();
         check(result(castle).getOutcome() == RoundOverState.Outcome.TEAM_A_WINS, "Castle destruction was missed during a turn");
@@ -194,45 +195,63 @@ public class GameOverTest {
                 break;
             }
         }
-        round.startBattle();
+        startBattle(round);
         round.update();
-        check(round.isGameOver() && intruder.isDestroyed(), "A trap killing the last group should end the match");
+        check(isGameOver(round) && intruder.isDestroyed(), "A trap killing the last group should end the match");
         check(defender.getGroupHealth() == defender.getMaxHealth(), "The dead group attacked after triggering the trap");
     }
 
-    private static void checkRestart() {
-        Session session = new Session();
-        Round old = session.getRound();
-        old.getTeamA().spendBudget(200);
-        old.getTeamA().addTroop(new Infantry(1, 1, 3, Troop.Team.teamA));
-        old.getTeamB().addTroop(new Infantry(1, 28, 1, Troop.Team.teamB));
-        old.getTeamACastle().takeDamage(10_000);
-        for (int restart = 0; restart < 2; restart++) {
-            session.restart();
-            Round fresh = session.getRound();
-            check(fresh != old && fresh.getTeamA() != old.getTeamA(), "Restart reused the old match");
-            check(fresh.isPlacingTroops() && !fresh.isGameOver(), "Restart should return to troop buying");
-            check(fresh.getTeamA().getBudget() == 500 && fresh.getTeamB().getBudget() == 500, "Budgets did not reset");
-            check(fresh.getTeamA().getArmy().isEmpty() && fresh.getTeamB().getArmy().isEmpty(), "Old armies survived restart");
-            check(fresh.getTeamACastle().getHealth() == 1000 && fresh.getTeamBCastle().getHealth() == 1000,
-                    "Castles did not reset");
-            check(fresh.getTileEffects().size() == 14, "The fresh battlefield was not allocated");
-            old = fresh;
+    private static void checkNextRound() {
+        Round round = placementRound();
+        Team a = round.getTeamA();
+        Team b = round.getTeamB();
+        a.spendBudget(200);
+        for (int next = 0; next < 2; next++) {
+            a.addTroop(new Infantry(1, 1, 3, Troop.Team.teamA));
+            b.addTroop(new Infantry(1, 28, 1, Troop.Team.teamB));
+            try {
+                startBattle(round);
+            } catch (InvalidPlacementException e) {
+                throw new AssertionError(e);
+            }
+            round.getTeamACastle().takeDamage(10_000);
+            round.update();
+            check(isGameOver(round) && view(round).resultVisible, "The result was not shown");
+            int goldA = a.getBudget();
+            int goldB = b.getBudget();
+            round.nextRoundRequested();
+            check(isPlacingTroops(round) && !view(round).resultVisible, "Next Round should return to buying");
+            check(round.getTeamA() == a && round.getTeamB() == b, "Next Round must retain the teams");
+            check(a.getBudget() == goldA + 500 && b.getBudget() == goldB + 500,
+                    "Next Round must carry unspent gold and add the round allowance");
+            check(a.getArmy().isEmpty() && b.getArmy().isEmpty(), "Old armies survived Next Round");
+            check(round.getTeamACastle().getHealth() == 1000 && round.getTeamBCastle().getHealth() == 1000,
+                    "Castle health did not reset");
+            check(round.getTileEffects().size() == 14, "The new battlefield was not allocated");
         }
     }
 
-    private static void checkRestartButton() {
+    private static void checkNextRoundButton() {
         try {
-            Session session = new Session();
-            Round round = session.getRound();
+            RecordingView display = new RecordingView();
+            Session session = new Session(display);
+            check(display.actions instanceof Round, "Session must connect PlayerActions before starting");
+            session.start();
+            Round round = (Round) display.actions;
+            check(round.getTeamA().getBudget() == 500 && round.getTeamB().getBudget() == 500,
+                    "A new session must start with exactly $500 per team");
             round.getTeamA().addTroop(new Infantry(1, 1, 1, Troop.Team.teamA));
             round.getTeamB().addTroop(new Infantry(1, 28, 1, Troop.Team.teamB));
-            round.startBattle();
+            startBattle(round);
             round.getTeamBCastle().takeDamage(10_000);
             round.update();
-            GameOverPanel prompt = new GameOverPanel(result(round), session::restart);
-            prompt.getRestartButton().doClick();
-            check(session.getRound() != round && session.getRound().isPlacingTroops(), "Restart button did not reset the match");
+            RoundOverState result = result(round);
+            RoundOverPanel prompt = new RoundOverPanel(round::nextRoundRequested);
+            prompt.showResult(result.getTitle(), result.getReason(), result.getSummary());
+            int gold = round.getTeamA().getBudget();
+            prompt.getNextRoundButton().doClick();
+            check(isPlacingTroops(round) && !display.resultVisible && round.getTeamA().getBudget() == gold + 500,
+                    "Next Round button did not start a clean round with carried gold");
         } catch (Exception e) {
             throw new AssertionError(e);
         }

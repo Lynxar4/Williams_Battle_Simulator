@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.Round;
 import controller.TileEffectSummary;
 import controller.TileEffectSummaryCollector;
@@ -135,7 +136,7 @@ public class TileEffectSummaryTest {
     /* ---- through Round ---- */
 
     private static void roundReportsItsOwnBoard() {
-        Round round = new Round(new Team("teamA"), new Team("teamB"));
+        Round round = newRound(new Team("teamA"), new Team("teamB"));
         round.spawnTileEffects();
         TileEffectSummary summary = round.tileEffectSummary();
 
