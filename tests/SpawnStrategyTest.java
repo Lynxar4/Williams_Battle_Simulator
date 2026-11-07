@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.Cell;
 import controller.Round;
 import controller.SpawnStrategy;
@@ -163,7 +164,7 @@ public class SpawnStrategyTest {
                 teamA.addTroop(new Infantry(row, column, 1, Troop.Team.teamA));
             }
         }
-        Round round = new Round(teamA, teamB);
+        Round round = testsupport.SimulationTestSupport.newRound(teamA, teamB);
 
         long start = System.currentTimeMillis();
         round.spawnTileEffects();
@@ -176,7 +177,7 @@ public class SpawnStrategyTest {
     /* ---- helpers ---- */
 
     private static Round newRound() {
-        return new Round(new Team("teamA"), new Team("teamB"));
+        return testsupport.SimulationTestSupport.newRound(new Team("teamA"), new Team("teamB"));
     }
 
     private static int count(List<TileEffect> effects, Class<?> type) {

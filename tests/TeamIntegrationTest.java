@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.EventLogListener;
 import controller.Round;
 import entity.Team;
@@ -26,7 +27,7 @@ public class TeamIntegrationTest {
     }
 
     private static Round placementRound() {
-        Round round = new Round(new Team("teamA"), new Team("teamB"));
+        Round round = newRound(new Team("teamA"), new Team("teamB"));
         round.start();
         round.update();
         return round;
@@ -38,8 +39,8 @@ public class TeamIntegrationTest {
         round.addTileEffectListener(log);
         int[] left = emptyCell(round, 0);
         int[] right = emptyCell(round, round.getColumnCount() / 2);
-        Infantry attacker = (Infantry) round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 2, left[0], left[1]);
-        Troop enemy = round.buyTroop(Troop.Team.teamB, TroopType.INFANTRY, 1, right[0], right[1]);
+        Infantry attacker = (Infantry) buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 2, left[0], left[1]);
+        Troop enemy = buyTroop(round, Troop.Team.teamB, TroopType.INFANTRY, 1, right[0], right[1]);
         Coin coin = (Coin) round.getTileEffects().stream().filter(effect -> effect instanceof Coin).findFirst().orElseThrow();
         attacker.setPosition(coin.getRow(), coin.getColumn());
         // An adjacent opponent keeps the attacker on the coin during its turn.
@@ -57,7 +58,7 @@ public class TeamIntegrationTest {
         check(adjacent, "Need an empty neighbouring cell");
         int budgetA = round.getTeamA().getBudget();
         int budgetB = round.getTeamB().getBudget();
-        round.startBattle();
+        startBattle(round);
         round.update();
         check(round.getTeamA().getBudget() == budgetA + coin.getAmount(), "Combat did not pay collected gold");
         check(round.getTeamB().getBudget() == budgetB, "Gold was paid to the wrong team");
@@ -107,8 +108,8 @@ public class TeamIntegrationTest {
 
     private static void checkView(EventLogListener log) {
         BattlefieldPanel field = new BattlefieldPanel(); // Loads every class-specific sprite.
-        field.setRound(placementRound());
-        field.setEventLog(log);
+        connectBoard(placementRound(), field);
+        field.showLatestEvent(log.getLatest());
         JPanel view = field.createView();
         field.refresh();
         check(hasLabel(view, log.getLatest()), "The merged view does not show the event log");

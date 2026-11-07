@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.Round;
 import entity.InvalidPlacementException;
 import entity.Team;
@@ -29,7 +30,7 @@ public class TroopBuyingTest {
     }
 
     private static Round placementRound() {
-        Round round = new Round(new Team("teamA"), new Team("teamB"));
+        Round round = newRound(new Team("teamA"), new Team("teamB"));
         round.start();
         round.update();
         return round;
@@ -40,7 +41,7 @@ public class TroopBuyingTest {
         check(round.getRowCount() == 30 && round.getColumnCount() == 30, "Expected a 30 x 30 battlefield");
         for (TroopType type : TroopType.values()) {
             int[] cell = emptyCell(round, Troop.Team.teamA);
-            Troop troop = round.buyTroop(Troop.Team.teamA, type, 2, cell[0], cell[1]);
+            Troop troop = buyTroop(round, Troop.Team.teamA, type, 2, cell[0], cell[1]);
             check(troop.getClass().getSimpleName().equals(type.getDisplayName()), "Wrong troop type");
             check(troop.getInitialGroupSize() == 2, "Soldier count was not preserved");
             check(troop.isAt(cell[0], cell[1]), "Group was not placed on the chosen tile");
@@ -50,7 +51,7 @@ public class TroopBuyingTest {
         check(round.getTeamB().getBudget() == 500, "Purchases charged the other team");
 
         int[] cell = emptyCell(round, Troop.Team.teamB);
-        Troop troop = round.buyTroop(Troop.Team.teamB, TroopType.CAVALRY, 20, cell[0], cell[1]);
+        Troop troop = buyTroop(round, Troop.Team.teamB, TroopType.CAVALRY, 20, cell[0], cell[1]);
         check(troop.getTeam() == Troop.Team.teamB, "Wrong group owner");
         check(round.getTeamB().getBudget() == 0, "An exact-budget purchase should succeed");
     }
@@ -58,26 +59,26 @@ public class TroopBuyingTest {
     private static void checkRejections() throws Exception {
         Round round = placementRound();
         int[] cell = emptyCell(round, Troop.Team.teamA);
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 0, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, -1, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 51, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.CAVALRY, Integer.MAX_VALUE, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(null, TroopType.INFANTRY, 1, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, null, 1, cell[0], cell[1]));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, -1, 0));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 0, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, -1, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 51, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.CAVALRY, Integer.MAX_VALUE, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, null, TroopType.INFANTRY, 1, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, null, 1, cell[0], cell[1]));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, -1, 0));
         int half = round.getColumnCount() / 2;
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, 0, round.getColumnCount()));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, round.getRowCount(), 0));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, 0, half));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamB, TroopType.INFANTRY, 1, 0, half - 1));
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1,
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, 0, round.getColumnCount()));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, round.getRowCount(), 0));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, 0, half));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamB, TroopType.INFANTRY, 1, 0, half - 1));
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1,
                 round.getTeamACastle().getRow(), round.getTeamACastle().getColumn()));
         var effect = round.getTileEffects().get(0);
         Troop.Team owner = effect.getColumn() < half ? Troop.Team.teamA : Troop.Team.teamB;
-        rejectsWithoutCharge(round, () -> round.buyTroop(owner, TroopType.INFANTRY, 1, effect.getRow(), effect.getColumn()));
+        rejectsWithoutCharge(round, () -> buyTroop(round, owner, TroopType.INFANTRY, 1, effect.getRow(), effect.getColumn()));
 
-        round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, cell[0], cell[1]);
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, cell[0], cell[1]));
+        buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, cell[0], cell[1]);
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, cell[0], cell[1]));
     }
 
     private static void checkBattleTransition() throws Exception {
@@ -85,17 +86,17 @@ public class TroopBuyingTest {
         for (int tick = 0; tick < 5; tick++) {
             round.update();
         }
-        check(round.isPlacingTroops(), "Placement should wait for player input");
-        rejectsWithoutCharge(round, round::startBattle);
+        check(isPlacingTroops(round), "Placement should wait for player input");
+        rejectsWithoutCharge(round, () -> startBattle(round));
         int[] left = emptyCell(round, Troop.Team.teamA);
-        round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, left[0], left[1]);
-        rejectsWithoutCharge(round, round::startBattle);
+        buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, left[0], left[1]);
+        rejectsWithoutCharge(round, () -> startBattle(round));
         int[] right = emptyCell(round, Troop.Team.teamB);
-        round.buyTroop(Troop.Team.teamB, TroopType.ARCHER, 1, right[0], right[1]);
-        check(round.canStartBattle(), "Both teams are ready");
-        round.startBattle();
-        check(!round.isPlacingTroops(), "Start Battle did not change phase");
-        rejectsWithoutCharge(round, () -> round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, 0, 0));
+        buyTroop(round, Troop.Team.teamB, TroopType.ARCHER, 1, right[0], right[1]);
+        check(view(round).startAllowed, "Both teams are ready");
+        startBattle(round);
+        check(!isPlacingTroops(round), "Start Battle did not change phase");
+        rejectsWithoutCharge(round, () -> buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, 0, 0));
     }
 
     private static void checkPriestOnlyArmies() throws Exception {
@@ -104,29 +105,28 @@ public class TroopBuyingTest {
             Round round = placementRound();
             for (Troop.Team owner : Troop.Team.values()) {
                 int[] cell = emptyCell(round, owner);
-                round.buyTroop(owner, TroopType.PRIEST, 3, cell[0], cell[1]);
+                buyTroop(round, owner, TroopType.PRIEST, 3, cell[0], cell[1]);
             }
-            check(!round.canStartBattle(), "Priest-only armies must not be ready");
-            rejectsWithoutCharge(round, round::startBattle);
-            check(round.isPlacingTroops(), "Rejected start must stay in placement");
+            check(!view(round).startAllowed, "Priest-only armies must not be ready");
+            rejectsWithoutCharge(round, () -> startBattle(round));
+            check(isPlacingTroops(round), "Rejected start must stay in placement");
 
             int[] left = emptyCell(round, Troop.Team.teamA);
-            Troop attacker = round.buyTroop(Troop.Team.teamA, attackerType, 1, left[0], left[1]);
-            check(!round.canStartBattle(), "Team B still needs an attacker");
-            rejectsWithoutCharge(round, round::startBattle);
+            Troop attacker = buyTroop(round, Troop.Team.teamA, attackerType, 1, left[0], left[1]);
+            check(!view(round).startAllowed, "Team B still needs an attacker");
+            rejectsWithoutCharge(round, () -> startBattle(round));
 
             int[] right = emptyCell(round, Troop.Team.teamB);
-            round.buyTroop(Troop.Team.teamB, attackerType, 1, right[0], right[1]);
-            check(round.canStartBattle(), "Mixed armies with attackers should be ready");
+            buyTroop(round, Troop.Team.teamB, attackerType, 1, right[0], right[1]);
+            check(view(round).startAllowed, "Mixed armies with attackers should be ready");
 
             attacker.takeDamage(10_000);
-            check(!round.canStartBattle(), "A destroyed attacker must not make Team A ready");
-            rejectsWithoutCharge(round, round::startBattle);
+            rejectsWithoutCharge(round, () -> startBattle(round));
 
             left = emptyCell(round, Troop.Team.teamA);
-            round.buyTroop(Troop.Team.teamA, attackerType, 1, left[0], left[1]);
-            round.startBattle();
-            check(!round.isPlacingTroops(), "Both teams with living attackers should start");
+            buyTroop(round, Troop.Team.teamA, attackerType, 1, left[0], left[1]);
+            startBattle(round);
+            check(!isPlacingTroops(round), "Both teams with living attackers should start");
         }
     }
 
@@ -138,7 +138,7 @@ public class TroopBuyingTest {
         round.getTeamA().addTroop(ally);
         round.getTeamA().addTroop(new Priest(0, 1, 1, Troop.Team.teamA));
         round.getTeamB().addTroop(new Infantry(round.getRowCount() - 1, round.getColumnCount() - 1, 1, Troop.Team.teamB));
-        round.startBattle();
+        startBattle(round);
         round.update();
         check(ally.getGroupHealth() > before, "A priest should heal an adjacent injured ally");
     }
@@ -159,10 +159,10 @@ public class TroopBuyingTest {
     private static void checkResizedPlacement() {
         Round round = placementRound();
         BattlefieldPanel field = new BattlefieldPanel();
-        field.setRound(round);
+        connectBoard(round, field);
         field.setPlacementHandler((row, column) -> {
             try {
-                round.buyTroop(Troop.Team.teamA, TroopType.INFANTRY, 1, row, column);
+                buyTroop(round, Troop.Team.teamA, TroopType.INFANTRY, 1, row, column);
             } catch (InvalidPlacementException expected) {
                 // Outside-grid clicks should be rejected without spending gold.
             }
@@ -212,7 +212,7 @@ public class TroopBuyingTest {
     private static void checkScrollableBoard() {
         Round round = placementRound();
         BattlefieldPanel field = new BattlefieldPanel();
-        field.setRound(round);
+        connectBoard(round, field);
         JPanel view = field.createView();
         view.setSize(1180, 680);
         layout(view);
@@ -237,7 +237,7 @@ public class TroopBuyingTest {
         check(scroll.getViewport().getViewRect().contains(last), "Scrolling should reveal the last tiles");
         field.setPlacementHandler((r, c) -> {
             try {
-                round.buyTroop(Troop.Team.teamB, TroopType.INFANTRY, 1, r, c);
+                buyTroop(round, Troop.Team.teamB, TroopType.INFANTRY, 1, r, c);
             } catch (InvalidPlacementException e) {
                 throw new AssertionError(e.getMessage());
             }

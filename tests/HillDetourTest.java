@@ -1,3 +1,4 @@
+import static testsupport.SimulationTestSupport.*;
 import controller.Round;
 import entity.Team;
 import entity.interactables.Hill;
@@ -85,14 +86,13 @@ public class HillDetourTest {
             teamB.addTroop(new Infantry(10, 25, 10, Troop.Team.teamB));
             teamB.addTroop(new Archer(18, 25, 8, Troop.Team.teamB));
 
-            Round round = new Round(teamA, teamB);
+            Round round = newRound(teamA, teamB);
             round.start();
             round.update();
-            round.startBattle();
+            startBattle(round);
 
-            for (int tick = 0; tick < ticks && !round.isGameOver(); tick++) {
+            for (int tick = 0; tick < ticks && !isGameOver(round); tick++) {
                 round.update();
-                round.checkGameOver();
             }
 
             int here = 0;

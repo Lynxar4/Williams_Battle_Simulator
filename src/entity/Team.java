@@ -4,9 +4,6 @@ import entity.troops.Troop;
 import java.util.ArrayList;
 
 public class Team {
-    /* ---- STATIC VARIABLES ---- */
-    private static final int INITIAL_BUDGET = 500;
-
     /* ---- PRIVATE VARIABLES ---- */
     int budget, winCount;
     String name;
@@ -14,7 +11,7 @@ public class Team {
 
     /* ---- CONSTRUCTORS ---- */
     public Team(String name) {
-        budget = INITIAL_BUDGET;
+        budget = 0; // AllocateState supplies the allowance when each round begins.
         winCount = 0;
         army = new ArrayList<>();
         this.name = name;

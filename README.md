@@ -7,6 +7,9 @@ libraries.
 
 ## Running
 
+Use JDK 17 or newer. The project uses only standard Java classes; no external
+libraries or build tools are required.
+
 From the project root in PowerShell:
 
 ```powershell
@@ -52,8 +55,21 @@ the working directory, so running from `src/` leaves them blank.
 - The game-over card compares each team's starting soldiers, survivors, losses
   and remaining castle HP. Counts include priests and exclude groups removed
   before battle. The summary is captured at game over and stays fixed.
-- Click Restart on the game-over prompt to return to buying in the same window,
-  with fresh castles, empty armies, $500 per team, and a new battlefield.
+- Click Next Round on the result prompt to return to buying in the same window.
+  Castles reset to full health, armies are cleared, and terrain is regenerated.
+  Each team keeps its unspent gold and receives another $500. The first round
+  starts with exactly $500 per team.
+
+## Current structure
+
+`App` connects `SwingGameView` to `Session`. The session wires player actions to
+`Round` and runs its timer. Buying, moving, refunds and battle start belong to
+`PlaceState`; combat and defeat checks belong to `BattleState`; `RoundOverState`
+shows the frozen result and starts the next round. The controller communicates
+with the display through `GameView`, and panels report input through `PlayerActions`.
+Troops use breadth-first search to navigate around blocked cells and can divert
+to nearby unclaimed hills. The terrain panel uses `TileEffectSummaryCollector`
+to report the effects remaining on the board.
 
 ## Army health processing
 
@@ -80,19 +96,24 @@ scheduling and drawing, so it is not a measure of frame rate or total update tim
 
 ## Checks
 
-After compiling the simulation, run these checks using the standard JDK:
+From the project root in PowerShell, compile source and tests together, then run
+the complete check suite:
 
 ```powershell
-javac -cp bin -d bin (Get-ChildItem tests -Filter *.java).FullName
-java -cp bin TroopBuyingTest
-java -cp bin TeamIntegrationTest
-java -cp bin GameOverTest
-java -cp bin TileEffectVisitorTest
-java -cp bin HillRangeTest
-java -cp bin SpawnStrategyTest
-java -cp bin TileEffectSummaryTest
-java -cp bin HillDetourTest
-java -cp bin PlacementEditingTest
-java -cp bin ArmyHealthTest
+javac -d bin (Get-ChildItem src, tests -Recurse -Filter *.java).FullName
+if ($LASTEXITCODE -ne 0) { throw "Compilation failed." }
+java '-Djava.awt.headless=true' -cp bin AllTests
+```
+
+`AllTests` runs all ten test suites and exits with a nonzero status on failure.
+It also exits when the checks finish so test-created Swing timers cannot keep
+the command running. The test-only `RecordingView` records controller output
+without opening a window; purchase and movement helpers drive `PlayerActions`
+rather than the old methods removed from `Round`.
+
+To run the optional aggregation timing experiments after compiling:
+
+```powershell
 java -cp bin ArmyHealthBenchmark
+java -cp bin TileEffectSummaryBenchmark
 ```
